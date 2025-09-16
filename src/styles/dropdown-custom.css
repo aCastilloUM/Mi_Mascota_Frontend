@@ -1,0 +1,67 @@
+/* dropdown-custom.css: estilos globales para todos los selects (nativos y react-select) */
+
+/* Estilo base para selects nativos */
+.custom-dropdown,
+.custom-datepicker-calendar select {
+  border-radius: 30px !important;
+  border: 1px solid rgba(0,0,0,0.16) !important;
+  background: #fff !important;
+  color: #0A0F1E !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  height: 46px !important;
+  appearance: none !important;
+  cursor: pointer !important;
+  margin-bottom: 8px !important;
+  transition: border-color 0.2s !important;
+}
+.custom-dropdown:focus,
+.custom-datepicker-calendar select:focus {
+  border-color: #2B7FFF !important;
+}
+
+/* Estilo para react-select */
+.custom-react-select__control {
+  border-radius: 30px !important;
+  border: 1px solid rgba(0,0,0,0.16) !important;
+  background: #fff !important;
+  color: #0A0F1E !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  min-height: 46px !important;
+  box-shadow: none !important;
+  padding: 0 4px !important;
+  transition: border-color 0.2s !important;
+}
+.custom-react-select__control--is-focused {
+  border-color: #2B7FFF !important;
+}
+.custom-react-select__single-value {
+  color: #0A0F1E !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+}
+.custom-react-select__menu {
+  border-radius: 24px !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15) !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  font-size: 14px !important;
+  background: #fff !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+}
+.custom-react-select__option {
+  font-size: 14px !important;
+  color: #0A0F1E !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  background: #fff !important;
+}
+.custom-react-select__option--is-focused {
+  background: #E3F0FF !important;
+}
+.custom-react-select__option--is-selected {
+  background: #2B7FFF !important;
+  color: #fff !important;
+}

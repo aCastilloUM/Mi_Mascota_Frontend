@@ -1,0 +1,86 @@
+/* Input coherente con los demás cuadros */
+.custom-datepicker-calendar .react-datepicker__input-container input {
+  width: 100% !important;
+  height: 46px !important;
+  border-radius: 30px !important;
+  border: 1px solid rgba(0,0,0,0.16) !important;
+  background: #fff !important;
+  color: #0A0F1E !important;
+  outline: none !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s !important;
+}
+
+/* Select de mes y año igual a los inputs */
+.custom-datepicker-calendar select {
+  border-radius: 30px !important;
+  border: 1px solid rgba(0,0,0,0.16) !important;
+  background: #fff !important;
+  color: #0A0F1E !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  height: 46px !important;
+  appearance: none !important;
+  cursor: pointer !important;
+  margin-bottom: 8px !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+.custom-datepicker-calendar select:focus {
+  border-color: #2B7FFF !important;
+  box-shadow: 0 0 0 2px #a0ceeb55 !important;
+  background: #f2f8fc !important;
+}
+.custom-datepicker-calendar select option {
+  background: #fff !important;
+  color: #0A0F1E !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+}
+
+.custom-datepicker-calendar select:hover,
+.custom-datepicker-calendar select:active {
+  background: #f2f8fc !important;
+  border-color: #2B7FFF !important;
+  box-shadow: 0 0 0 2px #a0ceeb55 !important;
+}
+
+.custom-datepicker-calendar select:focus {
+  border-color: #2B7FFF !important;
+  box-shadow: 0 0 0 2px #a0ceeb55 !important;
+  background: #f2f8fc !important;
+}
+.custom-datepicker-calendar .react-datepicker__current-month,
+.custom-datepicker-calendar .react-datepicker__month-dropdown,
+.custom-datepicker-calendar .react-datepicker__year-dropdown {
+  font-size: 14px !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  color: #0A0F1E !important;
+}
+/* Estilos personalizados para react-datepicker */
+.custom-datepicker-calendar {
+  border-radius: 24px !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15) !important;
+  font-family: 'Segoe UI Rounded','Arial Rounded MT Bold',Arial,sans-serif !important;
+  font-size: 14px !important;
+  padding: 8px !important;
+  background: #fff !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+}
+.custom-datepicker-calendar .react-datepicker__day--selected,
+.custom-datepicker-calendar .react-datepicker__day--keyboard-selected {
+  background: #0389ff !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+.custom-datepicker-calendar .react-datepicker__header {
+  background: #f7fbff !important;
+  border-bottom: 1px solid #e0e7ef !important;
+  border-radius: 20px 20px 0 0 !important;
+}
