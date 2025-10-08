@@ -1,3 +1,4 @@
+import "./styles/global.css";
 import "./styles/datepicker-custom.css";
 import "./styles/dropdown-custom.css";
 import { StrictMode } from 'react'

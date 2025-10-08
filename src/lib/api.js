@@ -28,8 +28,11 @@ export function isTokenExpired(token) {
   }
 }
 
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+console.info("[api] baseURL =", baseURL);
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+  baseURL,
   withCredentials: true, // necesario para enviar/recibir cookies (refresh)
 });
 

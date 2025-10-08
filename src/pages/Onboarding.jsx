@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
 
-import bg2 from "../assets/backgrounds/background_blue_2.png";
 import logoTop from "../assets/logos/dog+cat.png";
 import family from "../assets/logos/men+dog+cat.png";
 import LogoTitle from "../components/logoTitle.jsx";
 import NextButton from "../components/NextButton.jsx";
+import { BeamsBackground } from "../components/ui/BeamsBackground";
 
 // Íconos step 3
 import chats from "../assets/icons/chats.png";
@@ -27,7 +27,6 @@ const defaultIcons = [
 export default function Onboarding({
   logoTopSrc    = logoTop,
   heroFamilySrc = family,
-  bgSrc = bg2,
   step3Icons = defaultIcons,
   onDone,
   force = false,
@@ -53,11 +52,8 @@ export default function Onboarding({
 
   if (!visible) return null;
 
-  const bgByStep = useMemo(() => [bgSrc, bgSrc, bgSrc], [bgSrc]);
-
   return (
     <div style={{
-  ...styles.fullscreen(primary, bgSrc),
       position: "fixed",
       inset: 0,
       width: "100vw",
@@ -69,8 +65,14 @@ export default function Onboarding({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
+      fontFamily: "'Segoe UI Rounded', 'Arial Rounded MT Bold', Arial, sans-serif",
+      color: "#fff",
     }}>
+      <BeamsBackground />
+      
       <div style={{
+        position: "relative",
+        zIndex: 1,
         width: 360,
         maxWidth: "100vw",
         height: "100vh",
@@ -198,20 +200,6 @@ function Dots({ total, active }) {
 /* ---------- Estilos ---------- */
 
 const styles = {
-  fullscreen: (primary, bgImage) => ({
-    position: "fixed",
-    inset: 0,
-    background: primary,
-    backgroundImage: bgImage ? `url(${bgImage})` : undefined,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    overflowY: "auto",
-  }),
-
   container: {
     width: "100%",
     maxWidth: 430,
