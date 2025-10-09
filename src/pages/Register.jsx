@@ -4,7 +4,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiEye, FiEyeOff, FiUser, FiShield, FiCamera, FiSkipForward } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { api } from "../lib/api";
+import { createOrUpdateProfile, uploadProfilePhoto, login } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { BeamsBackground } from "../components/ui/BeamsBackground";
 import { AnimatedButton } from "../components/ui/AnimatedButton";
 import { AnimatedInput, AnimatedSelect } from "../components/ui/AnimatedInput";
@@ -143,11 +144,13 @@ const styles = {
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register: authRegister } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
 
@@ -233,11 +236,23 @@ export default function Register() {
 
   // Función para enviar el formulario
   const onSubmit = async (data) => {
+    // Limpiar cualquier token existente para evitar falsas detecciones
+    localStorage.removeItem('accessToken');
+    
     setError("");
+    setSuccess(false);
     setLoading(true);
 
     try {
-      const payload = {
+      // Convertir fecha de yyyy-mm-dd a dd/MM/yyyy
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return "";
+        const [year, month, day] = dateString.split("-");
+        return `${day}/${month}/${year}`;
+      };
+
+      // 1. Primero registrar el usuario (auth) - estructura que espera el backend
+      const authPayload = {
         baseUser: {
           name: data.name.trim(),
           secondName: data.secondName.trim(),
@@ -255,32 +270,68 @@ export default function Register() {
           password: data.password,
         },
         client: {
-          birthDate: data.birthDate,
+          birthDate: formatDateForBackend(data.birthDate), // formato dd/MM/yyyy que espera el backend
         },
       };
 
-      await api.post("/auth/register", payload);
-      navigate("/onboarding");
-    } catch (e) {
-      const detail = e?.response?.data?.detail;
-      let backendMessage = "";
-
-      if (typeof detail === "string") {
-        backendMessage = detail;
-      } else if (detail?.message) {
-        backendMessage = detail.message;
-      } else if (Array.isArray(detail) && detail.length) {
-        backendMessage = detail[0]?.msg || detail[0]?.message || "";
+      const { user } = await authRegister(authPayload);
+      
+      // 1.5. Hacer login para obtener el token
+      const { accessToken } = await login(data.email.trim().toLowerCase(), data.password);
+      
+      // 2. Si hay foto de perfil, subirla (el perfil ya fue creado por authRegister)
+      if (profilePhoto && user?.id) {
+        try {
+          await uploadProfilePhoto(profilePhoto, user.id);
+        } catch (photoError) {
+          // No fallar el registro por la foto, solo mostrar advertencia
+        }
       }
 
-      const msg =
-        backendMessage ||
-        e?.response?.data?.error ||
-        e?.response?.data?.message ||
-        e?.message ||
-        "No pudimos crear tu cuenta";
+      // 3. Mostrar éxito y navegar al login
+      setSuccess(true);
+      setTimeout(() => {
+        navigate("/login", { 
+          state: { 
+            message: "¡Registro exitoso! Ahora podés iniciar sesión." 
+          }
+        });
+      }, 200);
+    } catch (e) {
+      // Manejo específico de errores del backend
+      if (e.response?.status === 409) {
+        // Error 409 específicamente para email duplicado
+        const errorDetail = e?.response?.data?.detail || e?.response?.data?.message || "";
+        
+        // Solo mostrar error de email duplicado si realmente es por email
+        if (errorDetail.toLowerCase().includes("email") || 
+            errorDetail.toLowerCase().includes("already exists") || 
+            errorDetail.toLowerCase().includes("ya existe")) {
+          setError("⚠️ Este email ya está registrado. ¿Querés iniciar sesión?");
+        } else {
+          setError("⚠️ Ya existe un registro con estos datos. Verificá la información ingresada.");
+        }
+      } else if (e.response?.status === 400) {
+        const detail = e?.response?.data?.detail;
+        let backendMessage = "";
 
-      setError(msg);
+        if (typeof detail === "string") {
+          backendMessage = detail;
+        } else if (detail?.message) {
+          backendMessage = detail.message;
+        } else if (Array.isArray(detail) && detail.length) {
+          backendMessage = detail[0]?.msg || detail[0]?.message || "";
+        }
+
+        setError(backendMessage || "❌ Datos inválidos. Por favor, verificá la información ingresada");
+      } else if (e.response?.status >= 500) {
+        setError("🔧 Error del servidor. Por favor, intentá más tarde");
+      } else if (e.code === 'NETWORK_ERROR' || !e.response) {
+        setError("🌐 Error de conexión. Verificá tu conexión a internet");
+      } else {
+        const msg = e?.response?.data?.detail || e?.response?.data?.error || e?.response?.data?.message || e?.message || "❌ No pudimos crear tu cuenta";
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -416,6 +467,24 @@ export default function Register() {
                 marginBottom: '12px'
               }}>
                 {error}
+              </div>
+            )}
+
+            {/* Éxito global */}
+            {success && (
+              <div style={{
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                color: '#15803D',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                ✅ ¡Cuenta creada exitosamente! Redirigiendo...
               </div>
             )}
 
@@ -1082,7 +1151,7 @@ export default function Register() {
                     opacity: loading ? 0.6 : 1
                   }}
                 >
-                  {loading ? "Creando cuenta..." : "Crear cuenta"}
+                  {loading ? (success ? "✅ Redirigiendo..." : "Creando cuenta...") : "Crear cuenta"}
                 </AnimatedButton>
               )}
             </div>
