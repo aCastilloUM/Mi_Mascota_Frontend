@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, setAccessToken, setOnTokenUpdate, isTokenExpired } from "../lib/api";
+import { api, setAccessToken, setOnTokenUpdate, isTokenExpired, register as apiRegister, login as apiLogin } from "../lib/api";
 import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext(null);
@@ -29,12 +29,24 @@ export function AuthProvider({ children }) {
     return () => setOnTokenUpdate(null);
   }, []);
 
-  // Arranque: intentar refresh silencioso (usa cookie HttpOnly de refresh)
+  // Arranque: intentar refresh silencioso solo en páginas protegidas
   useEffect(() => {
     (async () => {
+      const currentPath = window.location.pathname;
+      const isPublicPage = currentPath === '/login' || 
+                          currentPath === '/register' ||
+                          currentPath === '/' ||
+                          currentPath === '/onboarding';
+      
+      if (isPublicPage) {
+        // En páginas públicas, no intentar refresh automático
+        setBooting(false);
+        return;
+      }
+      
       try {
-        const { data } = await api.post("/auth/refresh"); // si hay cookie válida
-        setAccessToken(data?.accessToken || null);
+        const { data } = await api.post("/api/v1/auth/refresh");
+        setAccessToken(data?.access_token || null);
       } catch {
         setAccessToken(null);
       } finally {
@@ -44,16 +56,22 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async ({ email, password }) => {
-    // El backend debería:
-    // 1) setear refresh token en cookie HttpOnly Secure (Set-Cookie)
-    // 2) devolver { accessToken }
-    const { data } = await api.post("/auth/login", { email, password });
-    setAccessToken(data?.accessToken || null);
+    // Usar la función de login de api.js que maneja el endpoint correcto
+    const { accessToken } = await apiLogin(email, password);
+    // El token ya se setea automáticamente en apiLogin
+    return { accessToken };
+  };
+
+  const register = async (userData) => {
+    // Usar la función de registro de api.js que ya maneja el token
+    const { accessToken, user } = await apiRegister(userData);
+    // El token ya se setea automáticamente en apiRegister
+    return { accessToken, user };
   };
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout"); // backend borra cookie refresh
+      await api.post("/api/v1/auth/logout"); // backend borra cookie refresh
     } catch {}
     setAccessToken(null);
   };
@@ -61,7 +79,7 @@ export function AuthProvider({ children }) {
   const isAuth = !!access && !isTokenExpired(access);
 
   const value = useMemo(
-    () => ({ user, isAuth, login, logout, booting }),
+    () => ({ user, isAuth, login, register, logout, booting }),
     [user, isAuth, booting]
   );
 

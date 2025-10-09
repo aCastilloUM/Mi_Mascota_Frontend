@@ -1,39 +1,38 @@
 import React, { useMemo, useState, useEffect } from "react";
 
-import bg2 from "../assets/backgrounds/background_blue_2.png";
 import logoTop from "../assets/logos/dog+cat.png";
-import family from "../assets/logos/men+dog+cat.png";
-import LogoTitle from "../components/logoTitle.jsx";
-import NextButton from "../components/NextButton.jsx";
+import { BeamsBackground } from "../components/ui/BeamsBackground";
 
-// Íconos step 3
-import chats from "../assets/icons/chats.png";
-import id from "../assets/icons/id.png";
-import padlockHeart from "../assets/icons/padlock+heart.png";
-import shieldFootprint from "../assets/icons/shield+footprint.png";
-import star from "../assets/icons/star.png";
-
-const defaultIcons = [
-  { src: shieldFootprint, label: "Seguridad" },
-  { src: id,              label: "Historial" },
-  { src: star,            label: "Reseñas" },
-  { src: padlockHeart,    label: "Pagos" },
-  { src: chats,           label: "Privacidad" },
+const defaultSteps = [
+  {
+    title: "Bienvenido a Mi Mascota",
+    description: "Descubre una plataforma integral diseñada para el bienestar y cuidado de tu mejor amigo."
+  },
+  {
+    title: "Conecta con Expertos",
+    description: "Encuentra paseadores, cuidadores y servicios profesionales verificados para tu mascota."
+  },
+  {
+    title: "Reseñas Reales",
+    description: "Toma decisiones informadas con reseñas y calificaciones auténticas de otros dueños."
+  },
+  {
+    title: "¡Listo para Empezar!",
+    description: "Comienza a explorar todas las funcionalidades que tenemos preparadas para ti y tu mascota."
+  }
 ];
 
 /**
- * Onboarding de 3 pasos (solo primera vez).
+ * Onboarding moderno tipo dialog con el estilo de Origin UI
  */
 export default function Onboarding({
-  logoTopSrc    = logoTop,
-  heroFamilySrc = family,
-  bgSrc = bg2,
-  step3Icons = defaultIcons,
+  logoTopSrc = logoTop,
+  steps = defaultSteps,
   onDone,
   force = false,
-  nextLabel = "Continuar",
-  primary = "#1876c9",
-  accent = "#a0ceebff",
+  nextLabel = "Siguiente",
+  skipLabel = "Omitir",
+  finalLabel = "Empezar"
 }) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -51,247 +50,272 @@ export default function Onboarding({
     onDone?.();
   };
 
+  const skip = () => {
+    finish();
+  };
+
+  const next = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      finish();
+    }
+  };
+
   if (!visible) return null;
 
-  const bgByStep = useMemo(() => [bgSrc, bgSrc, bgSrc], [bgSrc]);
+  const currentStep = steps[step];
+  const isLastStep = step === steps.length - 1;
 
   return (
-    <div style={{
-  ...styles.fullscreen(primary, bgSrc),
-      position: "fixed",
-      inset: 0,
-      width: "100vw",
-      height: "100vh",
-      minHeight: 0,
-      minWidth: 0,
-      overflow: "hidden",
-      zIndex: 9999, 
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}>
-      <div style={{
-        width: 360,
-        maxWidth: "100vw",
-        height: "100vh",
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        alignItems: "center",
-        margin: "auto",
-        paddingTop: 8,
-        paddingBottom: 8,
-        gap: 0,
-        boxSizing: "border-box",
-      }}>
-        <LogoTitle
-          logoSrc={logoTopSrc}
-          logoStyle={{ width: 250, height: "auto", display: "block", margin: "0 auto 0px" }}
-          titleStyle={styles.title}
-          containerStyle={{ marginTop: 56}}
-        />
-
-        <div style={{ width: "100%", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
-          {step === 0 && <StepOne />}
-          {step === 1 && <StepTwo />}
-          {step === 2 && <StepThree icons={step3Icons} />}
+    <div style={styles.overlay}>
+      <BeamsBackground />
+      
+      <div style={styles.centerWrap}>
+        {/* Logo pegado arriba del card */}
+        <div style={styles.logoWrap}>
+          <img src={logoTopSrc} alt="Mi Mascota" style={styles.logoImg} />
         </div>
 
-        {(step === 0 || step === 1) && (
-          <div style={{ width: "100%", display: "flex", justifyContent: "center", marginBottom: 8 }}>
-            <img src={heroFamilySrc} alt="Familia" style={{ width: 210, height: "auto" }} draggable={false} />
-          </div>
-        )}
-
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
-          <Dots total={3} active={step} />
-          <NextButton
-            label={step < 2 ? nextLabel : "Empezar"}
-            accent={accent}
-            onClick={() => (step < 2 ? setStep(step + 1) : finish())}
-            style={{ maxWidth: 260, marginTop: 12 }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Pasos ---------- */
-
-function StepOne() {
-  return (
-    <div style={{ ...styles.stepBlock, textAlign: "center" }}>
-      <p style={styles.lead}>La plataforma de confianza para el bienestar de tu mascota.</p>
-    </div>
-  );
-}
-
-function StepTwo() {
-  return (
-    <div style={{ ...styles.stepBlock, textAlign: "center" }}>
-      <p style={{ ...styles.lead, marginBottom: 8 }}>
-        Accedé a reseñas reales para elegir con confianza<br />
-        Encontrá paseadores y cuidadores en minutos<br />
-        Tu mascota en manos de expertos certificados
-      </p>
-    </div>
-  );
-}
-
-function StepThree({ icons = [] }) {
-  const items = icons.slice(0, 5);
-  const labels = [
-    "Seguridad y confianza",
-    "Historial y experiencia validados",
-    "Reseñas reales de otros dueños",
-    "Pagos seguros y protegidos",
-    "Protección de datos y privacidad garantizada",
-  ];
-
-  return (
-    <div style={styles.stepBlock}>
-      <div style={styles.listWithIcons}>
-        {labels.map((text, i) => (
-          <div key={i} style={styles.itemRow}>
-            {items[i]?.src ? (
-              <img
-                src={items[i].src}
-                alt={items[i].label}
-                style={{ width: 50, height: "auto", objectFit: "contain", objectPosition: "center" }}
-                draggable={false}
+        {/* Dialog/Card */}
+        <div style={styles.dialog}>
+          {/* Botón cerrar */}
+          <button 
+            onClick={skip} 
+            style={styles.closeBtn}
+            aria-label="Cerrar onboarding"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path 
+                d="M12 4L4 12M4 4L12 12" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round"
               />
-            ) : (
-              <div style={styles.iconPlaceholder} />
-            )}
-            <span style={styles.itemText}>{text}</span>
+            </svg>
+          </button>
+
+          {/* Contenido */}
+          <div style={styles.content}>
+            <h2 style={styles.title}>{currentStep.title}</h2>
+            <p style={styles.description}>{currentStep.description}</p>
           </div>
-        ))}
+
+          {/* Indicadores de progreso */}
+          <div style={styles.progress}>
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  ...styles.dot,
+                  ...(index === step ? styles.activeDot : {}),
+                  ...(index < step ? styles.completedDot : {})
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Botones de acción */}
+          <div style={styles.actions}>
+            <button 
+              onClick={skip} 
+              style={styles.skipBtn}
+            >
+              {skipLabel}
+            </button>
+            <button 
+              onClick={next} 
+              style={styles.nextBtn}
+            >
+              {isLastStep ? finalLabel : nextLabel}
+              {!isLastStep && (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={styles.arrow}>
+                  <path 
+                    d="M6 4L10 8L6 12" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-
-function Dots({ total, active }) {
-  return (
-    <div style={styles.dots}>
-      {Array.from({ length: total }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            margin: 4,
-            opacity: i === active ? 1 : 0.4,
-            background: "#fff",
-            display: "inline-block",
-          }}
-        />
-      ))}
     </div>
   );
 }
 
 /* ---------- Estilos ---------- */
+const rounded = "'Segoe UI Rounded', 'Arial Rounded MT Bold', Arial, sans-serif";
 
 const styles = {
-  fullscreen: (primary, bgImage) => ({
+  overlay: {
     position: "fixed",
     inset: 0,
-    background: primary,
-    backgroundImage: bgImage ? `url(${bgImage})` : undefined,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    color: "#fff",
+    width: "100vw",
+    height: "100vh",
+    zIndex: 9999,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    overflowY: "auto",
-  }),
+    overflow: "hidden",
+    fontFamily: rounded,
+    color: "#0A0F1E",
+  },
 
-  container: {
+  centerWrap: {
+    position: "relative",
+    zIndex: 1,
     width: "100%",
-    maxWidth: 430,
+    minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
+    justifyContent: "flex-start",
     alignItems: "center",
-    gap: 12,
-    paddingTop: 8,
-    paddingBottom: 16,
+    padding: "90px 16px 40px",     
+    boxSizing: "border-box",
+  },
+
+  logoWrap: {
+    position: "relative",
+    zIndex: 2,
+    marginBottom: -36,
+    display: "grid",
+    placeItems: "center",
+    width: "100%",
+  },
+
+  logoImg: {
+    width: 130,
+    height: 130,
+    objectFit: "contain",
+    filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.35))",
+  },
+
+  dialog: {
+    position: "relative",
+    width: "100%",
+    maxWidth: "320px",
+    maxHeight: "calc(100vh - 120px)",
+    display: "flex",
+    flexDirection: "column",
+    margin: "0 auto",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.95)",
+    border: "1px solid rgba(255,255,255,0.25)",
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+    backdropFilter: "blur(6px)",
+    overflow: "hidden",
+    paddingTop: 32,
+    paddingBottom: 32,
+    fontFamily: rounded,
+  },
+
+  closeBtn: {
+    position: "absolute",
+    top: "16px",
+    right: "16px",
+    width: "32px",
+    height: "32px",
+    borderRadius: "8px",
+    border: "none",
+    background: "rgba(0, 0, 0, 0.05)",
+    color: "#6B7280",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+    zIndex: 1,
+  },
+
+  content: {
+    padding: "0 32px 24px",
+    textAlign: "center",
   },
 
   title: {
-    fontSize: "clamp(22px, 5vw, 30px)",
-    lineHeight: 1.15,
-    fontWeight: 800,
-    textAlign: "center",
-    marginTop: 0,
-    marginBottom: 0,
-    letterSpacing: 0.5,
-  },
-
-  lead: {
     fontSize: "clamp(18px, 4.1vw, 20px)",
-    lineHeight: 1.4,
-    textAlign: "center",
-    margin: "4px 0 10px",
-    fontFamily: 'Segoe UI Rounded, Arial Rounded MT Bold, Arial, sans-serif',
-    fontWeight: 500,
+    fontWeight: "700",
+    color: "#111827",
+    margin: "0 0 12px 0",
+    lineHeight: "1.3",
+    fontFamily: rounded,
   },
 
-  stepBlock: {
-    width: "100%",
-    textAlign: "center",
+  description: {
+    fontSize: "14px",
+    color: "#6B7280",
+    lineHeight: "1.5",
+    margin: "0",
+    fontFamily: rounded,
+    opacity: 0.85,
   },
 
-  heroMask: {
-    width: "100%",
-    maxWidth: 360,
-    borderRadius: 24,
-    overflow: "visible",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: "auto",
-    marginRight: "auto",
-    marginBottom: 6,
-  },
-
-  listWithIcons: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    marginTop: 8,
-  },
-
-  itemRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  iconPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    background: "rgba(255,255,255,0.35)",
-  },
-
-  itemText: {
-    fontSize: "clamp(18px, 4.1vw, 20px)",
-    lineHeight: 1.35,
-    flex: 1,
-    fontFamily: 'Segoe UI Rounded, Arial Rounded MT Bold, Arial, sans-serif',
-    fontWeight: 500,
-    borderRadius: 12,
-  },
-
-  dots: {
+  progress: {
     display: "flex",
     justifyContent: "center",
-    marginTop: 6,
+    gap: "8px",
+    padding: "0 32px 24px",
   },
+
+  dot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    backgroundColor: "#E5E7EB",
+    transition: "all 0.3s ease",
+  },
+
+  activeDot: {
+    backgroundColor: "#3B82F6",
+    transform: "scale(1.2)",
+  },
+
+  completedDot: {
+    backgroundColor: "#10B981",
+  },
+
+  actions: {
+    display: "flex",
+    gap: "12px",
+    padding: "0 32px 0px",
+    justifyContent: "space-between",
+  },
+
+  skipBtn: {
+    padding: "10px 20px",
+    border: "none",
+    background: "transparent",
+    color: "#6B7280",
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    borderRadius: "8px",
+    transition: "all 0.2s ease",
+    fontFamily: rounded,
+  },
+
+  nextBtn: {
+    padding: "10px 20px",
+    border: "none",
+    background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
+    color: "#FFFFFF",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    borderRadius: "8px",
+    transition: "all 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+    fontFamily: rounded,
+  },
+
+  arrow: {
+    marginLeft: "2px",
+  }
 };

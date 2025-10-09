@@ -1,15 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-import logoTop from "../assets/logos/dog+cat.png";
-import { useAuth } from "../context/AuthContext";
-import { BeamsBackground } from "../components/ui/BeamsBackground";
-import { AnimatedInput } from "../components/ui/AnimatedInput";
-import { AnimatedButton } from "../components/ui/AnimatedButton";
+import logoTop from "../../assets/logos/dog+cat.png";
+import { useAuth } from "../../context/AuthContext";
 
 // Esquema de validación
 const schema = z.object({
@@ -17,17 +14,144 @@ const schema = z.object({
   password: z.string().min(6, "Mínimo 6 caracteres"),
 });
 
+// Componente BeamsBackground integrado
+const BeamsBackground = () => {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'linear-gradient(135deg, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)',
+      overflow: 'hidden'
+    }}>
+      {/* Beams animados */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `
+          radial-gradient(circle at 20% 80%, rgba(135, 206, 235, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(70, 130, 180, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 40% 40%, rgba(30, 144, 255, 0.2) 0%, transparent 50%)
+        `,
+        animation: 'float 6s ease-in-out infinite'
+      }} />
+      
+      {/* Gradiente overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(135, 206, 235, 0.1)',
+        backdropFilter: "blur(50px)"
+      }} />
+    </div>
+  );
+};
+
+// Componente AnimatedInput integrado
+const AnimatedInput = React.forwardRef(({ style = {}, ...props }, ref) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasValue, setHasValue] = useState(false);
+
+  const handleFocus = () => setIsFocused(true);
+  const handleBlur = (e) => {
+    setIsFocused(false);
+    setHasValue(e.target.value.length > 0);
+  };
+
+  const inputStyles = {
+    width: '100%',
+    height: '20px',
+    padding: '8px 12px',
+    border: '1.5px solid #E2E8F0',
+    borderRadius: '8px',
+    outline: 'none',
+    fontSize: '14px',
+    backgroundColor: '#FFFFFF',
+    fontFamily: 'inherit',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    ...style,
+    ...(isFocused ? {
+      borderColor: '#3B82F6',
+      boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)'
+    } : {}),
+    ...(hasValue && !isFocused ? {
+      borderColor: '#10B981',
+      boxShadow: '0 1px 3px rgba(16, 185, 129, 0.1)'
+    } : {})
+  };
+
+  return (
+    <input
+      ref={ref}
+      style={inputStyles}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      {...props}
+    />
+  );
+});
+
+// Componente AnimatedButton integrado
+const AnimatedButton = ({ children, style = {}, disabled, ...props }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
+  const buttonStyles = {
+    padding: '12px 24px',
+    borderRadius: '12px',
+    border: 'none',
+    background: disabled ? '#D1D5DB' : 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+    color: '#FFFFFF',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: disabled ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.3)',
+    transform: isPressed ? 'translateY(1px)' : isHovered ? 'translateY(-1px)' : 'translateY(0)',
+    opacity: disabled ? 0.6 : 1,
+    ...style,
+    ...(isHovered && !disabled ? {
+      boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)'
+    } : {}),
+  };
+
+  return (
+    <button
+      style={buttonStyles}
+      onMouseEnter={() => !disabled && setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsPressed(false);
+      }}
+      onMouseDown={() => !disabled && setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      disabled={disabled}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
 export default function Login() {
   const navigate = useNavigate();
-  const { search, state } = useLocation();
+  const { search } = useLocation();
   const params = useMemo(() => new URLSearchParams(search), [search]);
-  const next = params.get("next") || "/home";
+  const next = params.get("next") || "/";
 
-  const { login } = useAuth(); // Removí isAuth porque causaba el bucle
+  const { login, isAuth } = useAuth();
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [successMessage, setSuccessMessage] = useState(state?.message || "");
 
   const {
     register,
@@ -39,33 +163,17 @@ export default function Login() {
     defaultValues: { email: "", password: "" },
   });
 
-  // ELIMINÉ EL useEffect PROBLEMÁTICO QUE CAUSABA EL PARPADEO
+  useEffect(() => {
+    if (isAuth) navigate(next, { replace: true });
+  }, [isAuth, next, navigate]);
 
   const onSubmit = async (data) => {
     setErr("");
     setLoading(true);
     try {
       await login({ email: data.email.trim(), password: data.password });
-      // Después del login exitoso, ir a la página de home
-      navigate("/home", { replace: true });
-      
     } catch (e) {
-      console.error("[Login] Error:", e);
-      console.log("[Login] Status:", e.response?.status); // Debug log
-      
-      // Manejo específico de errores del backend
-      if (e.response?.status === 401) {
-        console.log("[Login] Setting 401 error message"); // Debug log
-        setErr("❌ Email o contraseña incorrectos");
-      } else if (e.response?.status === 400) {
-        setErr("❌ Datos inválidos. Por favor, verificá tu email y contraseña");
-      } else if (e.response?.status >= 500) {
-        setErr("🔧 Error del servidor. Por favor, intentá más tarde");
-      } else if (e.code === 'NETWORK_ERROR' || !e.response) {
-        setErr("🌐 Error de conexión. Verificá tu conexión a internet");
-      } else {
-        setErr(e?.response?.data?.detail || e?.message || "❌ No pudimos iniciar sesión");
-      }
+      setErr(e?.message || "No pudimos iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -104,9 +212,9 @@ export default function Login() {
                 autoComplete="email"
                 {...register("email")}
                 style={{
-                  width: '80%',
+                  width: '95%',
                   height: '20px',
-                  paddingRight: '40px',
+                  maxWidth: '95%',
                   ...(errors.email ? styles.inputError : touchedFields.email ? styles.inputOk : null),
                 }}
               />
@@ -124,9 +232,8 @@ export default function Login() {
                   autoComplete="current-password"
                   {...register("password")}
                   style={{
-                    width: '80%',
+                    width: '100%',
                     height: '20px',
-                    paddingRight: '40px',
                     ...(errors.password ? styles.inputError : touchedFields.password ? styles.inputOk : null),
                   }}
                 />
@@ -149,13 +256,6 @@ export default function Login() {
             <button type="button" onClick={() => navigate("/forgot-password")} style={styles.link}>
               ¿Olvidaste tu contraseña?
             </button>
-
-            {/* Mensaje de éxito del registro */}
-            {successMessage && (
-              <div style={styles.successAlert}>
-                {successMessage}
-              </div>
-            )}
 
             {/* Error global */}
             {err ? <div style={styles.alert}>{err}</div> : null}
@@ -334,15 +434,6 @@ const styles = {
     background: "rgba(255, 87, 87, 0.15)",
     border: "1px solid rgba(255, 87, 87, 0.4)",
     color: "#a60000",
-    borderRadius: 12,
-    padding: "10px 12px",
-    fontSize: 13,
-    fontFamily: rounded,
-  },
-  successAlert: {
-    background: "rgba(34, 197, 94, 0.15)",
-    border: "1px solid rgba(34, 197, 94, 0.4)",
-    color: "#15803d",
     borderRadius: 12,
     padding: "10px 12px",
     fontSize: 13,
