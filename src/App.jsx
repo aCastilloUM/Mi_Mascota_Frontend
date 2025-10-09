@@ -5,7 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 
 import Onboarding from "./pages/onboarding.jsx";
 import Login from "./pages/login.jsx";
-import MultiStepRegister from "./components/ui/MultiStepRegister.jsx";
+import Register from "./pages/Register.jsx";
 
 function OnboardingWithNavigation() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/onboarding" replace />} />
           <Route path="/onboarding" element={<OnboardingWithNavigation />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<MultiStepRegister />} />
+          <Route path="/register" element={<Register />} />
 
           {/* más rutas */}
         </Routes>
