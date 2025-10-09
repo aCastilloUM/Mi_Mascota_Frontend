@@ -143,6 +143,26 @@ export async function logout() {
 }
 
 /**
+ * Reenviar email de verificación
+ * @param {string} email - Email del usuario
+ * @returns {Promise<object>} - Respuesta del servidor
+ */
+export async function resendVerificationEmail(email) {
+  const response = await api.post("/api/v1/auth/resend-verification", { email });
+  return response.data;
+}
+
+/**
+ * Verificar email con token
+ * @param {string} token - Token de verificación
+ * @returns {Promise<object>} - Respuesta del servidor
+ */
+export async function verifyEmail(token) {
+  const response = await api.post("/api/v1/auth/verify-email", { token });
+  return response.data;
+}
+
+/**
  * Refresh del token de acceso
  * @returns {Promise<{accessToken: string}>}
  */

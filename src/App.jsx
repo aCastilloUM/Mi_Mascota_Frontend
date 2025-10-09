@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-route
 
 import { AuthProvider } from "./context/AuthContext";
 
-import Onboarding from "./pages/onboarding.jsx";
-import Login from "./pages/login.jsx";
+import Onboarding from "./pages/Onboarding.jsx";
+import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import EmailVerificationPending from "./pages/EmailVerificationPending.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 // Componente para manejar la ruta raíz
 function AppEntry() {
@@ -76,6 +78,8 @@ export default function App() {
           <Route path="/onboarding" element={<OnboardingWithNavigation />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/email-verification-pending" element={<EmailVerificationPending />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/home" element={<HomePage />} />
 
           {/* más rutas */}
