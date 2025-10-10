@@ -16,11 +16,18 @@ function createBeam(width, height) {
     };
 }
 
+// Detectar si es un dispositivo móvil
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth < 768;
+};
+
 export function BeamsBackground({ className = "", children, intensity = "medium" }) {
     const canvasRef = useRef(null);
     const beamsRef = useRef([]);
     const animationFrameRef = useRef(0);
-    const MINIMUM_BEAMS = 20;
+    const lastFrameTimeRef = useRef(0);
+    const MINIMUM_BEAMS = isMobileDevice() ? 10 : 20; // Menos beams en móviles
 
     const opacityMap = {
         subtle: 0.7,
@@ -36,16 +43,20 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
         if (!ctx) return;
 
         const updateCanvasSize = () => {
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            canvas.style.width = `${window.innerWidth}px`;
-            canvas.style.height = `${window.innerHeight}px`;
+            // Optimización para móviles: usar devicePixelRatio más conservador
+            const dpr = isMobileDevice() ? Math.min(window.devicePixelRatio || 1, 2) : window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
             ctx.scale(dpr, dpr);
 
-            const totalBeams = MINIMUM_BEAMS * 1.5;
+            const totalBeams = MINIMUM_BEAMS * (isMobileDevice() ? 1 : 1.5);
             beamsRef.current = Array.from({ length: totalBeams }, () =>
-                createBeam(canvas.width, canvas.height)
+                createBeam(width, height)
             );
         };
 
@@ -107,15 +118,30 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
             ctx.restore();
         }
 
-        function animate() {
+        function animate(currentTime) {
             if (!canvas || !ctx) return;
 
+            // Optimización: Limitar FPS en móviles para mejor rendimiento
+            const targetFPS = isMobileDevice() ? 30 : 60;
+            const frameInterval = 1000 / targetFPS;
+            
+            if (currentTime - lastFrameTimeRef.current < frameInterval) {
+                animationFrameRef.current = requestAnimationFrame(animate);
+                return;
+            }
+            
+            lastFrameTimeRef.current = currentTime;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.filter = "blur(35px)";
+            
+            // Reducir blur en móviles para mejor rendimiento
+            ctx.filter = isMobileDevice() ? "blur(20px)" : "blur(35px)";
 
             const totalBeams = beamsRef.current.length;
             beamsRef.current.forEach((beam, index) => {
-                beam.y -= beam.speed;
+                // Movimiento más suave en móviles
+                const speedMultiplier = isMobileDevice() ? 0.8 : 1;
+                beam.y -= beam.speed * speedMultiplier;
                 beam.pulse += beam.pulseSpeed;
 
                 if (beam.y + beam.length < -100) {
@@ -128,10 +154,30 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
             animationFrameRef.current = requestAnimationFrame(animate);
         }
 
-        animate();
+        // Inicializar con timestamp
+        const startAnimation = (timestamp) => {
+            lastFrameTimeRef.current = timestamp;
+            animate(timestamp);
+        };
+        
+        animationFrameRef.current = requestAnimationFrame(startAnimation);
+
+        // Manejar visibilidad para pausar/reanudar animación en móviles
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current);
+                }
+            } else {
+                animationFrameRef.current = requestAnimationFrame(startAnimation);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             window.removeEventListener("resize", updateCanvasSize);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }

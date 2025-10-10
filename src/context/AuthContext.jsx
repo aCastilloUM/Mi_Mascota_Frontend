@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, setAccessToken, setOnTokenUpdate, isTokenExpired, register as apiRegister, login as apiLogin } from "../lib/api";
+import { api, setAccessToken, setOnTokenUpdate, isTokenExpired, register as apiRegister, login as apiLogin, loginWith2FA as apiLoginWith2FA } from "../lib/api";
 import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext(null);
@@ -56,10 +56,33 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async ({ email, password }) => {
-    // Usar la función de login de api.js que maneja el endpoint correcto
-    const { accessToken } = await apiLogin(email, password);
-    // El token ya se setea automáticamente en apiLogin
-    return { accessToken };
+    // Usar la función de login de api.js que maneja 2FA
+    const result = await apiLogin(email, password);
+    
+    // Si requiere 2FA, devolver la información para el siguiente paso
+    if (result.requires2FA) {
+      return {
+        requires2FA: true,
+        tempToken: result.tempToken,
+        message: result.message
+      };
+    }
+    
+    // Login exitoso sin 2FA
+    return { 
+      success: true,
+      accessToken: result.accessToken,
+      user: result.user 
+    };
+  };
+
+  const loginWith2FA = async (tempToken, code) => {
+    const { accessToken, user } = await apiLoginWith2FA(tempToken, code);
+    return { 
+      success: true,
+      accessToken, 
+      user 
+    };
   };
 
   const register = async (userData) => {
@@ -79,7 +102,7 @@ export function AuthProvider({ children }) {
   const isAuth = !!access && !isTokenExpired(access);
 
   const value = useMemo(
-    () => ({ user, isAuth, login, register, logout, booting }),
+    () => ({ user, isAuth, login, loginWith2FA, register, logout, booting }),
     [user, isAuth, booting]
   );
 

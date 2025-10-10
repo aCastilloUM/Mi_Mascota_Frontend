@@ -86,9 +86,10 @@ api.interceptors.response.use(
 
 /**
  * Login con email y password
+ * Puede requerir 2FA si el usuario lo tiene activado
  * @param {string} email 
  * @param {string} password 
- * @returns {Promise<{accessToken: string, user: object}>}
+ * @returns {Promise<{accessToken?: string, user?: object, requires2FA?: boolean, tempToken?: string}>}
  */
 export async function login(email, password) {
   const response = await api.post("/api/v1/auth/login", {
@@ -96,13 +97,43 @@ export async function login(email, password) {
     password,
   });
   
-  // El backend devuelve access_token (snake_case), no accessToken (camelCase)
+  // Verificar si el login requiere 2FA
+  if (response.data.requires_2fa) {
+    return {
+      requires2FA: true,
+      tempToken: response.data.temp_token,
+      message: response.data.message || "Se requiere código 2FA"
+    };
+  }
+  
+  // Login normal (sin 2FA)
   const { access_token: accessToken, user } = response.data;
   
   if (accessToken) {
     setAccessToken(accessToken);
   } else {
     console.error("[api] No access_token in login response!");
+  }
+  
+  return { accessToken, user };
+}
+
+/**
+ * Completar login con código 2FA
+ * @param {string} tempToken - Token temporal del primer paso
+ * @param {string} code - Código TOTP de 6 dígitos
+ * @returns {Promise<{accessToken: string, user: object}>}
+ */
+export async function loginWith2FA(tempToken, code) {
+  const response = await api.post("/api/v1/auth/login/2fa", {
+    temp_token: tempToken,
+    code: code.trim(),
+  });
+  
+  const { access_token: accessToken, user } = response.data;
+  
+  if (accessToken) {
+    setAccessToken(accessToken);
   }
   
   return { accessToken, user };
@@ -234,6 +265,64 @@ export async function uploadProfilePhoto(file, profileId = null) {
 export async function getProfiles(page = 1, size = 20) {
   const response = await api.get("/api/v1/profiles", {
     params: { page, size },
+  });
+  return response.data;
+}
+
+// ================================
+// 2FA ENDPOINTS
+// ================================
+
+/**
+ * Obtener estado de 2FA del usuario actual
+ * @returns {Promise<{is_enabled: boolean, backup_codes_count: number}>}
+ */
+export async function get2FAStatus() {
+  const response = await api.get("/api/v1/2fa/status");
+  return response.data;
+}
+
+/**
+ * Activar 2FA - Paso 1: Generar QR code
+ * @returns {Promise<{secret: string, qr_code: string, backup_codes: string[]}>}
+ */
+export async function enable2FA() {
+  const response = await api.post("/api/v1/2fa/enable");
+  return response.data;
+}
+
+/**
+ * Verificar setup de 2FA - Paso 2: Confirmar con código TOTP
+ * @param {string} code - Código de 6 dígitos del authenticator
+ * @returns {Promise<{message: string, backup_codes: string[]}>}
+ */
+export async function verify2FASetup(code) {
+  const response = await api.post("/api/v1/2fa/verify-setup", {
+    code: code.trim(),
+  });
+  return response.data;
+}
+
+/**
+ * Desactivar 2FA
+ * @param {string} code - Código TOTP actual para confirmar
+ * @returns {Promise<{message: string}>}
+ */
+export async function disable2FA(code) {
+  const response = await api.post("/api/v1/2fa/disable", {
+    code: code.trim(),
+  });
+  return response.data;
+}
+
+/**
+ * Regenerar códigos de backup
+ * @param {string} code - Código TOTP actual para confirmar
+ * @returns {Promise<{backup_codes: string[], message: string}>}
+ */
+export async function regenerateBackupCodes(code) {
+  const response = await api.post("/api/v1/2fa/regenerate-backup-codes", {
+    code: code.trim(),
   });
   return response.data;
 }

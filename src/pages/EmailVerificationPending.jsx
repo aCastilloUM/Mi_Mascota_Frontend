@@ -2,9 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiMail, FiRefreshCw, FiEdit3 } from "react-icons/fi";
 
-import logoTop from "../assets/logos/dog+cat.png";
-import { BeamsBackground } from "../components/ui/BeamsBackground";
 import { AnimatedButton } from "../components/ui/AnimatedButton";
+import { AuthLayout, AuthCenterWrap } from "../components/ui/AuthLayout";
+import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
+import { Logo, LogoWrap } from "../components/ui/Logo";
+import { useResponsiveText } from "../hooks/useResponsiveText";
+import { useResponsive } from "../hooks/useResponsive";
 import { resendVerificationEmail } from "../lib/api";
 
 // Componente de animación tipo morph loading adaptado de tsx a jsx
@@ -34,6 +37,8 @@ const UniqueLoading = ({ size = "1g", className = "" }) => {
 export default function EmailVerificationPending() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { title, body } = useResponsiveText();
+  const { height } = useResponsive();
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60); // 60 segundos para reenviar
   const [canResend, setCanResend] = useState(false);
@@ -94,26 +99,18 @@ export default function EmailVerificationPending() {
   };
 
   return (
-    <div style={styles.screen}>
-      <BeamsBackground />
-
-      {/* Botón cerrar (arriba-derecha) */}
-      <button aria-label="Cerrar" onClick={() => navigate("/login")} style={styles.closeBtn}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 5L13 13M13 5L5 13" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-        </svg>
-      </button>
-
-      <div style={styles.centerWrap}>
+    <AuthLayout>
+      <AuthCenterWrap>
         {/* Logo pegado */}
-        <div style={styles.logoWrap}>
-          <img src={logoTop} alt="Mi Mascota" style={styles.logoImg} />
-        </div>
+        <LogoWrap>
+          <Logo />
+        </LogoWrap>
 
         {/* Card responsiva */}
-        <div style={styles.card}>
-          {/* Icono de email y animación */}
-          <div style={styles.iconSection}>
+        <AuthCard cardType="email-verification" autoHeight={true}>
+          <AuthCardContent>
+            {/* Icono de email y animación */}
+            <div style={styles.iconSection}>
             <div style={styles.emailIconWrap}>
               <FiMail size={32} color="#3B82F6" />
             </div>
@@ -122,8 +119,8 @@ export default function EmailVerificationPending() {
 
           {/* Contenido con padding como Register */}
           <div style={styles.content}>
-            <h1 style={styles.title}>Revisa tu bandeja de entrada</h1>
-            <p style={styles.subtitle}>
+            <h1 style={{ ...styles.title, fontSize: title }}>Revisa tu bandeja de entrada</h1>
+            <p style={{ ...styles.subtitle, fontSize: body }}>
               Te hemos enviado un email de verificación a:
             </p>
             
@@ -131,7 +128,7 @@ export default function EmailVerificationPending() {
               <strong>{userEmail}</strong>
             </div>
 
-            <p style={styles.instruction}>
+            <p style={{ ...styles.instruction, fontSize: body }}>
               Haz click en el enlace del email para verificar tu cuenta y continuar.
             </p>
 
@@ -168,8 +165,9 @@ export default function EmailVerificationPending() {
               </ul>
             </div>
           </div>
-        </div>
-      </div>
+          </AuthCardContent>
+        </AuthCard>
+      </AuthCenterWrap>
 
       {/* Estilos CSS para animaciones morph loading */}
       <style jsx>{`
@@ -236,7 +234,7 @@ export default function EmailVerificationPending() {
           50% { transform: translateY(-20px) rotate(1deg); }
         }
       `}</style>
-    </div>
+    </AuthLayout>
   );
 }
 
@@ -244,74 +242,6 @@ export default function EmailVerificationPending() {
 const rounded = "'Segoe UI Rounded', 'Arial Rounded MT Bold', Arial, sans-serif";
 
 const styles = {
-  closeBtn: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    zIndex: 3,
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.22)",
-    background: "rgba(14, 20, 42, 0.55)",
-    backdropFilter: "blur(6px)",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-    color: "#fff",
-  },
-  screen: {
-    position: "fixed",
-    inset: 0,
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
-    fontFamily: rounded,
-    color: "#0A0F1E",
-  },
-  centerWrap: {
-    position: "relative",
-    zIndex: 1,
-    width: "100%",
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: "90px 16px 40px",     
-    boxSizing: "border-box",
-  },
-  logoWrap: {
-    position: "relative",
-    zIndex: 2,
-    marginBottom: -36,
-    display: "grid",
-    placeItems: "center",
-    width: "100%",
-  },
-  logoImg: {
-    width: 130,
-    height: 130,
-    objectFit: "contain",
-    filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.35))",
-  },
-  card: {
-    position: "relative",
-    width: "100%",
-    maxWidth: "320px",
-    maxHeight: "calc(100vh - 120px)",
-    display: "flex",
-    flexDirection: "column",
-    margin: "0 auto",
-    borderRadius: 12,
-    background: "rgba(255,255,255,0.95)",
-    border: "1px solid rgba(255,255,255,0.25)",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-    backdropFilter: "blur(6px)",
-    overflow: "hidden",
-    paddingTop: 32,
-    paddingBottom: 32,
-  },
   iconSection: {
     display: "flex",
     flexDirection: "column",

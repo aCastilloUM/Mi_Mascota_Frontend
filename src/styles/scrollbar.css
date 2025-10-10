@@ -1,0 +1,64 @@
+/* Ocultar barras de scroll globalmente manteniendo funcionalidad */
+
+/* Para WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Para Firefox */
+* {
+  scrollbar-width: none;
+}
+
+/* Para IE/Edge */
+* {
+  -ms-overflow-style: none;
+}
+
+/* Asegurar scroll suave en touch devices */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scroll específico para contenido de auth cards */
+.auth-card-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.auth-card-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mantener funcionalidad de scroll pero ocultar barras */
+.scroll-container {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Forzar fondo blanco en inputs para evitar amarillo de autocomplete */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #3B82F6 !important;
+}
+
+/* Forzar fondo blanco en todos los inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"] {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+}

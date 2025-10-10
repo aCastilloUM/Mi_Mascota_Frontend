@@ -13,11 +13,11 @@ export const AnimatedInput = React.forwardRef(({
 
   const baseStyle = {
     width: '100%',
-    height: '36px',
-    padding: '8px 12px',
-    borderRadius: '8px',
+    height: '32px', // Reducido de 36px a 32px
+    padding: '6px 10px', // Reducido padding
+    borderRadius: '6px', // Reducido de 8px
     outline: 'none',
-    fontSize: '14px',
+    fontSize: '13px', // Reducido de 14px
     backgroundColor: '#FFFFFF',
     fontFamily: 'inherit',
     transition: 'all 0.2s ease',
@@ -31,7 +31,11 @@ export const AnimatedInput = React.forwardRef(({
       : isHovered 
         ? '0 2px 6px rgba(0, 0, 0, 0.15)' 
         : '0 1px 3px rgba(0, 0, 0, 0.1)',
-    transform: isFocused ? 'translateY(-1px)' : 'translateY(0)'
+    transform: isFocused ? 'translateY(-1px)' : 'translateY(0)',
+    // Prevenir autocomplete styling en móviles
+    WebkitBoxShadow: '0 0 0 1000px #FFFFFF inset !important',
+    WebkitTextFillColor: '#000000 !important',
+    caretColor: '#3B82F6'
   };
 
   return (

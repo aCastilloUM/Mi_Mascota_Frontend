@@ -1,15 +1,20 @@
 import React, { useState, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-import logoTop from "../assets/logos/dog+cat.png";
 import { useAuth } from "../context/AuthContext";
-import { BeamsBackground } from "../components/ui/BeamsBackground";
 import { AnimatedInput } from "../components/ui/AnimatedInput";
 import { AnimatedButton } from "../components/ui/AnimatedButton";
+import { AuthLayout, AuthCenterWrap } from "../components/ui/AuthLayout";
+import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
+import { Logo, LogoWrap } from "../components/ui/Logo";
+import { useResponsiveText } from "../hooks/useResponsiveText";
+import { useResponsive } from "../hooks/useResponsive";
+import { AuthCardTransition, useAuthNavigation } from "../animations";
+import { TwoFactorInput } from "../components/ui/TwoFactorInput";
 
 // Esquema de validación
 const schema = z.object({
@@ -18,16 +23,27 @@ const schema = z.object({
 });
 
 export default function Login() {
-  const navigate = useNavigate();
+  const router = useAuthNavigation();
   const { search, state } = useLocation();
   const params = useMemo(() => new URLSearchParams(search), [search]);
+  const { title: titleSize, body: bodySize, label: labelSize, small: smallSize, button: buttonSize } = useResponsiveText();
+  const { height } = useResponsive();
+  
+  // Crear estilos con tamaños responsive
+  const styles = useMemo(() => createStyles(titleSize, bodySize, labelSize, smallSize, buttonSize), [titleSize, bodySize, labelSize, smallSize, buttonSize]);
   const next = params.get("next") || "/home";
 
-  const { login } = useAuth(); // Removí isAuth porque causaba el bucle
+  const { login, loginWith2FA } = useAuth(); // Agregar loginWith2FA
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [successMessage, setSuccessMessage] = useState(state?.message || "");
+  
+  // Estados para 2FA
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
 
   const {
     register,
@@ -42,12 +58,22 @@ export default function Login() {
   // ELIMINÉ EL useEffect PROBLEMÁTICO QUE CAUSABA EL PARPADEO
 
   const onSubmit = async (data) => {
+    if (loading || router.isTransitioning) return;
+    
     setErr("");
     setLoading(true);
     try {
-      await login({ email: data.email.trim(), password: data.password });
-      // Después del login exitoso, ir a la página de home
-      navigate("/home", { replace: true });
+      const result = await login({ email: data.email.trim(), password: data.password });
+      
+      // Verificar si requiere 2FA
+      if (result.requires2FA) {
+        setRequires2FA(true);
+        setTempToken(result.tempToken);
+        setErr(""); // Limpiar errores
+      } else if (result.success) {
+        // Login exitoso sin 2FA
+        router.toHome();
+      }
       
     } catch (e) {
       console.error("[Login] Error:", e);
@@ -71,117 +97,204 @@ export default function Login() {
     }
   };
 
+  // Función para manejar el código 2FA
+  const onSubmit2FA = async (code) => {
+    if (twoFactorLoading || !code || code.length !== 6) return;
+    
+    setErr("");
+    setTwoFactorLoading(true);
+    try {
+      const result = await loginWith2FA(tempToken, code);
+      if (result.success) {
+        router.toHome();
+      }
+    } catch (e) {
+      console.error("[Login 2FA] Error:", e);
+      
+      if (e.response?.status === 401) {
+        setErr("❌ Código 2FA incorrecto o expirado");
+      } else if (e.response?.status === 400) {
+        setErr("❌ Código 2FA inválido");
+      } else {
+        setErr("❌ Error al verificar el código 2FA");
+      }
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  // Función para volver al formulario de login
+  const backToLogin = () => {
+    setRequires2FA(false);
+    setTempToken("");
+    setTwoFactorCode("");
+    setErr("");
+  };
+
   return (
-    <div style={styles.screen}>
-      <BeamsBackground />
+    <AuthLayout>
+      <AuthCenterWrap>
+        <AuthCardTransition {...router.getPageProps()}>
+          {/* Logo pegado */}
+          <LogoWrap>
+            <Logo />
+          </LogoWrap>
 
-      {/* Botón cerrar (arriba-derecha) */}
-      <button aria-label="Cerrar" onClick={() => navigate(-1)} style={styles.closeBtn}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 5L13 13M13 5L5 13" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-        </svg>
-      </button>
+          {/* Card responsiva, padding simétrico y overflow hidden */}
+          <AuthCard cardType="login">
+            <AuthCardContent>
+            
+            {!requires2FA ? (
+              <>
+                <h1 style={styles.title}>Iniciar sesión</h1>
+                <p style={styles.subtitle}>¡Bienvenido! Ingresa tu cuenta para comenzar.</p>
 
-      <div style={styles.centerWrap}>
-        {/* Logo pegado */}
-        <div style={styles.logoWrap}>
-          <img src={logoTop} alt="Mi Mascota" style={styles.logoImg} />
-        </div>
+                <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+                {/* Email */}
+                <div style={styles.field}>
+                  <label htmlFor="email" style={styles.label}>Mail</label>
+                  <AnimatedInput
+                    id="email"
+                    type="email"
+                    placeholder="tu@correo.com"
+                    autoComplete="email"
+                    {...register("email")}
+                    style={{
+                      width: '80%',
+                      height: '20px',
+                      paddingRight: '40px',
+                      ...(errors.email ? styles.inputError : touchedFields.email ? styles.inputOk : null),
+                    }}
+                  />
+                  {errors.email && <span style={styles.errorText}>{errors.email.message}</span>}
+                </div>
 
-        {/* Card responsiva, padding simétrico y overflow hidden */}
-        <div style={styles.card}>
-          <h1 style={styles.title}>Iniciar sesión</h1>
-          <p style={styles.subtitle}>¡Bienvenido! Ingresa tu cuenta para comenzar.</p>
+                {/* Password */}
+                <div style={styles.field}>
+                  <label htmlFor="password" style={styles.label}>Contraseña</label>
+                  <div style={styles.pwdWrap}>
+                    <AnimatedInput
+                      id="password"
+                      type={showPwd ? "text" : "password"}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      {...register("password")}
+                      style={{
+                        width: '80%',
+                        height: '20px',
+                        paddingRight: '40px',
+                        ...(errors.password ? styles.inputError : touchedFields.password ? styles.inputOk : null),
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      onClick={() => setShowPwd((s) => !s)}
+                      style={styles.eyeBtn}
+                    >
+                      {showPwd ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    </button>
+                  </div>
+                  {errors.password && <span style={styles.errorText}>{errors.password.message}</span>}
+                </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
-            {/* Email */}
-            <div style={styles.field}>
-              <label htmlFor="email" style={styles.label}>Mail</label>
-              <AnimatedInput
-                id="email"
-                type="email"
-                placeholder="tu@correo.com"
-                autoComplete="email"
-                {...register("email")}
-                style={{
-                  width: '80%',
-                  height: '20px',
-                  paddingRight: '40px',
-                  ...(errors.email ? styles.inputError : touchedFields.email ? styles.inputOk : null),
-                }}
-              />
-              {errors.email && <span style={styles.errorText}>{errors.email.message}</span>}
-            </div>
+                {/* Olvidaste tu contraseña */}
+                <button 
+                  type="button" 
+                  onClick={() => router.goForward("/forgot-password")} 
+                  style={styles.link}
+                  disabled={router.isTransitioning}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
 
-            {/* Password */}
-            <div style={styles.field}>
-              <label htmlFor="password" style={styles.label}>Contraseña</label>
-              <div style={styles.pwdWrap}>
-                <AnimatedInput
-                  id="password"
-                  type={showPwd ? "text" : "password"}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  {...register("password")}
+                {/* Mensaje de éxito del registro */}
+                {successMessage && (
+                  <div style={styles.successAlert}>
+                    {successMessage}
+                  </div>
+                )}
+
+                {/* Error global */}
+                {err ? <div style={styles.alert}>{err}</div> : null}
+
+                {/* CTA principal */}
+                <AnimatedButton
+                  type="submit"
+                  disabled={!isValid || loading || router.isTransitioning}
                   style={{
-                    width: '80%',
-                    height: '20px',
-                    paddingRight: '40px',
-                    ...(errors.password ? styles.inputError : touchedFields.password ? styles.inputOk : null),
-                  }}
-                />
-                <button
-                  type="button"
-                  aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  onClick={() => setShowPwd((s) => !s)}
-                  style={{
-                    ...styles.eyeBtn,
-                    right: '12px'
+                    width: '100%',
+                    opacity: (!isValid || loading || router.isTransitioning) ? 0.6 : 1
                   }}
                 >
-                  {showPwd ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </button>
-              </div>
-              {errors.password && <span style={styles.errorText}>{errors.password.message}</span>}
-            </div>
+                  {loading ? "Ingresando…" : "Ingresar"}
+                </AnimatedButton>
+              </form>
+              </>
+            ) : (
+              <>
+                <h1 style={styles.title}>Autenticación de dos factores</h1>
+                <p style={styles.subtitle}>Ingresa el código de 6 dígitos de tu aplicación autenticadora.</p>
 
-            {/* Olvidaste tu contraseña */}
-            <button type="button" onClick={() => navigate("/forgot-password")} style={styles.link}>
-              ¿Olvidaste tu contraseña?
-            </button>
+                <form onSubmit={onSubmit2FA} style={styles.form}>
+                  {/* Código 2FA */}
+                  <div style={styles.field}>
+                    <label style={styles.label}>Código de verificación</label>
+                    <TwoFactorInput
+                      value={twoFactorCode}
+                      onChange={setTwoFactorCode}
+                      disabled={twoFactorLoading}
+                    />
+                  </div>
 
-            {/* Mensaje de éxito del registro */}
-            {successMessage && (
-              <div style={styles.successAlert}>
-                {successMessage}
-              </div>
+                  {/* Error 2FA */}
+                  {err && <div style={styles.alert}>{err}</div>}
+
+                  {/* Botones 2FA */}
+                  <div style={styles.twoFactorButtons}>
+                    <button 
+                      type="button" 
+                      onClick={backToLogin}
+                      style={styles.backButton}
+                      disabled={twoFactorLoading}
+                    >
+                      Volver
+                    </button>
+                    <AnimatedButton
+                      type="submit"
+                      disabled={twoFactorCode.length !== 6 || twoFactorLoading}
+                      style={{
+                        flex: 1,
+                        opacity: (twoFactorCode.length !== 6 || twoFactorLoading) ? 0.6 : 1
+                      }}
+                    >
+                      {twoFactorLoading ? "Verificando…" : "Verificar"}
+                    </AnimatedButton>
+                  </div>
+                </form>
+              </>
             )}
-
-            {/* Error global */}
-            {err ? <div style={styles.alert}>{err}</div> : null}
-
-            {/* CTA principal */}
-            <AnimatedButton
-              type="submit"
-              disabled={!isValid || loading}
-              style={{
-                width: '100%',
-                opacity: (!isValid || loading) ? 0.6 : 1
+          
+          {/* Texto de registro dentro del card */}
+          <div style={styles.registerSection}>
+            <span style={styles.registerText}>¿No tenés cuenta?</span>
+            <button 
+              style={styles.registerBtn} 
+              onClick={() => {
+                console.log('🔥 Botón Register clickeado!'); // 🎯 DEBUG
+                console.log('🔥 router.toRegister:', router.toRegister); // 🎯 DEBUG
+                router.toRegister('login');
               }}
+              disabled={router.isTransitioning}
             >
-              {loading ? "Ingresando…" : "Ingresar"}
-            </AnimatedButton>
-          </form>
-        </div>
-      </div>
-
-      {/* Barra inferior */}
-      <div style={styles.bottomBar}>
-        <span style={{ opacity: 0.9 }}>¿No tenés cuenta?</span>
-        <button style={styles.registerBtn} onClick={() => navigate("/register")}>
-          Registrate
-        </button>
-      </div>
+              Registrate
+            </button>
+          </div>
+          
+          </AuthCardContent>
+        </AuthCard>
+        </AuthCardTransition>
+      </AuthCenterWrap>
 
       {/* Estilos CSS para animaciones */}
       <style jsx>{`
@@ -190,110 +303,42 @@ export default function Login() {
           50% { transform: translateY(-20px) rotate(1deg); }
         }
       `}</style>
-    </div>
+    </AuthLayout>
   );
 }
 
 /* ---- estilos ---- */
 const rounded = "'Segoe UI Rounded', 'Arial Rounded MT Bold', Arial, sans-serif";
 
-const styles = {
-  closeBtn: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    zIndex: 3,
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.22)",
-    background: "rgba(14, 20, 42, 0.55)",
-    backdropFilter: "blur(6px)",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-    color: "#fff",
-  },
-  screen: {
-    position: "fixed",
-    inset: 0,
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
-    fontFamily: rounded,
-    color: "#0A0F1E",
-  },
-  centerWrap: {
-    position: "relative",
-    zIndex: 1,
-    width: "100%",
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: "90px 16px 40px",     
-    boxSizing: "border-box",
-  },
-  logoWrap: {
-    position: "relative",
-    zIndex: 2,
-    marginBottom: -36,
-    display: "grid",
-    placeItems: "center",
-    width: "100%",
-  },
-  logoImg: {
-    width: 130,
-    height: 130,
-    objectFit: "contain",
-    filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.35))",
-  },
-  card: {
-    position: "relative",
-    width: "100%",
-    maxWidth: "320px",
-    maxHeight: "calc(100vh - 120px)",
-    display: "flex",
-    flexDirection: "column",
-    margin: "0 auto",
-    borderRadius: 12,
-    background: "rgba(255,255,255,0.95)",
-    border: "1px solid rgba(255,255,255,0.25)",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-    backdropFilter: "blur(6px)",
-    overflow: "hidden",
-    paddingTop: 32,
-    paddingBottom: 32,
-  },
+const createStyles = (titleSize, bodySize, labelSize, smallSize, buttonSize) => ({
   title: {
     margin: "0 0 0 0",
     fontFamily: rounded,
-    fontSize: "clamp(18px, 4.1vw, 20px)",
+    fontSize: titleSize,
     lineHeight: 1.35,
     fontWeight: 700,
     textAlign: "center",
   },
   subtitle: {
-    margin: "8px 0 18px 0",
+    margin: "6px 0 12px 0", // Reducido espacio
     fontFamily: rounded,
-    fontSize: 14,
+    fontSize: bodySize,
     opacity: 0.85,
     lineHeight: 1.4,
     textAlign: "center",
   },
   form: {
     display: "grid",
-    gap: 14,
-    padding: 18,
-    paddingTop: 12,
+    gap: 10, // Reducido de 14 a 10
+    padding: 14, // Reducido de 18
+    paddingTop: 8, // Reducido de 12
   },
   field: {
     display: "grid",
-    gap: 8,
+    gap: 5, // Reducido de 8 a 5
   },
   label: {
-    fontSize: '11px',
+    fontSize: labelSize,
     fontWeight: '600',
     color: '#374151',
     marginBottom: '3px',
@@ -301,12 +346,12 @@ const styles = {
   },
   pwdWrap: {
     position: "relative",
-    display: "flex",
-    alignItems: "center",
+    display: "block",
+    width: "100%",
   },
   eyeBtn: {
     position: "absolute",
-    right: '0px',
+    right: '12px',
     top: "50%",
     transform: "translateY(-50%)",
     background: "none",
@@ -324,9 +369,9 @@ const styles = {
     background: "transparent",
     border: "none",
     padding: 0,
-    color: "#0040cc",
+    color: "#000000",
     textDecoration: "underline",
-    fontSize: 14,
+    fontSize: bodySize,
     cursor: "pointer",
     fontFamily: rounded,
   },
@@ -336,7 +381,7 @@ const styles = {
     color: "#a60000",
     borderRadius: 12,
     padding: "10px 12px",
-    fontSize: 13,
+    fontSize: smallSize,
     fontFamily: rounded,
   },
   successAlert: {
@@ -345,33 +390,34 @@ const styles = {
     color: "#15803d",
     borderRadius: 12,
     padding: "10px 12px",
-    fontSize: 13,
+    fontSize: smallSize,
     fontFamily: rounded,
   },
-  bottomBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 12,
-    zIndex: 1,
+  registerSection: {
     display: "flex",
-    gap: 10,
+    gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    padding: "10px 12px",
-    color: "#fff",
-    textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+    padding: "16px 0 0 0",
+    marginTop: "12px",
+    borderTop: "1px solid rgba(0,0,0,0.08)",
+  },
+  registerText: {
+    fontSize: smallSize,
+    color: "#6B7280",
     fontFamily: rounded,
   },
   registerBtn: {
-    border: "1px solid rgba(255,255,255,0.35)",
-    background: "rgba(255,255,255,0.15)",
+    border: "1px solid #3B82F6",
+    background: "#3B82F6",
     color: "#fff",
-    padding: "8px 16px",
-    borderRadius: 999,
-    fontWeight: 700,
+    padding: "6px 12px",
+    borderRadius: 8,
+    fontSize: smallSize,
+    fontWeight: 600,
     cursor: "pointer",
     fontFamily: rounded,
+    transition: "all 0.2s ease",
   },
   inputError: {
     border: "1px solid rgba(255, 85, 85, 0.65)",
@@ -381,7 +427,26 @@ const styles = {
   },
   errorText: {
     color: '#EF4444',
-    fontSize: '10px',
+    fontSize: smallSize,
     margin: '2px 0 0 0'
+  },
+  twoFactorButtons: {
+    display: 'flex',
+    gap: 12,
+    alignItems: 'center',
+    marginTop: 8
+  },
+  backButton: {
+    background: 'transparent',
+    border: '1px solid #D1D5DB',
+    color: '#6B7280',
+    padding: '12px 20px',
+    borderRadius: 12,
+    fontSize: buttonSize,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: rounded,
+    transition: 'all 0.2s ease',
+    minWidth: '80px'
   }
-};
+});

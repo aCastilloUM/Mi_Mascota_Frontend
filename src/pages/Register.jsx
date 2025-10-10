@@ -3,14 +3,17 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiEye, FiEyeOff, FiUser, FiShield, FiCamera, FiSkipForward } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
 import { createOrUpdateProfile, uploadProfilePhoto, login } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import { BeamsBackground } from "../components/ui/BeamsBackground";
 import { AnimatedButton } from "../components/ui/AnimatedButton";
 import { AnimatedInput, AnimatedSelect } from "../components/ui/AnimatedInput";
 import { Stepper, StepperItem, StepperTrigger, StepperIndicator } from "../components/ui/stepper";
-import logoTop from "../assets/logos/dog+cat.png";
+import { AuthLayout, AuthCenterWrap } from "../components/ui/AuthLayout";
+import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
+import { Logo, LogoWrap } from "../components/ui/Logo";
+import { useResponsiveText } from "../hooks/useResponsiveText";
+import { useResponsive } from "../hooks/useResponsive";
+import { AuthCardTransition, useAuthNavigation } from "../animations";
 import zxcvbn from "zxcvbn";
 
 // Esquema de validación
@@ -143,9 +146,13 @@ const styles = {
 };
 
 export default function Register() {
-  const navigate = useNavigate();
+  const router = useAuthNavigation();
   const { register: authRegister } = useAuth();
+  const { title, small } = useResponsiveText();
+  const { height } = useResponsive();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [direction, setDirection] = useState('next'); // 'next' o 'prev'
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -195,15 +202,29 @@ export default function Register() {
 
   // Función para ir al siguiente paso
   const nextStep = async () => {
+    if (isAnimating) return; // Prevenir múltiples clicks durante animación
+    
     const isValidStep = await validateStep(currentStep);
     if (isValidStep) {
-      setCurrentStep(prev => Math.min(prev + 1, steps.length));
+      setIsAnimating(true);
+      setDirection('next');
+      setTimeout(() => {
+        setCurrentStep(prev => Math.min(prev + 1, steps.length));
+        setTimeout(() => setIsAnimating(false), 50);
+      }, 150);
     }
   };
 
   // Función para ir al paso anterior
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    if (isAnimating) return; // Prevenir múltiples clicks durante animación
+    
+    setIsAnimating(true);
+    setDirection('prev');
+    setTimeout(() => {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
+      setTimeout(() => setIsAnimating(false), 50);
+    }, 150);
   };
 
   // Función para manejar la carga de foto de perfil
@@ -291,11 +312,7 @@ export default function Register() {
       // 3. Mostrar éxito y navegar al login
       setSuccess(true);
       setTimeout(() => {
-        navigate("/login", { 
-          state: { 
-            message: "¡Registro exitoso! Ahora podés iniciar sesión." 
-          }
-        });
+        router.toLogin('register');
       }, 200);
     } catch (e) {
       // Manejo específico de errores del backend
@@ -358,75 +375,33 @@ export default function Register() {
   };
 
   return (
-    <BeamsBackground>
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: '80px 16px 60px',
-        overflowY: 'auto',
-        boxSizing: 'border-box',
-        zIndex: 10,
-        minHeight: '100vh'
-      }}>
-        {/* Logo arriba del card */}
-        <div style={{
-          position: 'relative',
-          zIndex: 2,
-          marginBottom: -36,
-          display: 'grid',
-          placeItems: 'center',
-          width: '100%',
-        }}>
-          <img
-            src={logoTop}
-            alt="Mi Mascota"
-            style={{
-              width: 130,
-              height: 130,
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.35))',
-            }}
-          />
-        </div>
+    <AuthLayout>
+      <AuthCenterWrap>
+        <AuthCardTransition {...router.getPageProps()}>
+          {/* Logo arriba del card */}
+          <LogoWrap>
+            <Logo />
+          </LogoWrap>
 
-        <div style={{
-          width: '100%',
-          maxWidth: '320px',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(6px)',
-          borderRadius: '12px',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          overflow: 'visible',
-          margin: '0 auto',
-          paddingTop: 32,
-          paddingBottom: 32,
-          minHeight: 'auto'
-        }}>
+          <AuthCard cardType="register" autoHeight={true}>
+          <AuthCardContent>
           {/* Header */}
           <div style={{
             textAlign: 'center',
-            padding: '0 20px 3px'
+            padding: '0 16px 2px' // Reducido padding
           }}>
             <h2 style={{
-              fontSize: '20px',
+              fontSize: title,
               fontWeight: 'bold',
               color: '#111827',
-              margin: '0 0 6px 0'
+              margin: '0 0 4px 0' // Reducido margen
             }}>
               Crear cuenta
             </h2>
             <p style={{
               color: '#6B7280',
-              fontSize: '13px',
-              margin: '0 0 16px 0'
+              fontSize: small,
+              margin: '0 0 10px 0' // Reducido margen
             }}>
               Paso {currentStep} de {steps.length}
             </p>
@@ -436,35 +411,50 @@ export default function Register() {
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            padding: '0 20px 18px',
-            gap: '6px'
+            padding: '0 16px 12px', // Reducido padding
+            gap: '4px' // Reducido gap
           }}>
             {steps.map((step, index) => (
               <div
                 key={step}
+                onClick={() => {
+                  if (!isAnimating && index + 1 !== currentStep) {
+                    setIsAnimating(true);
+                    setDirection(index + 1 > currentStep ? 'next' : 'prev');
+                    setTimeout(() => {
+                      setCurrentStep(index + 1);
+                      setTimeout(() => setIsAnimating(false), 50);
+                    }, 150);
+                  }
+                }}
                 style={{
                   height: '4px',
                   flex: 1,
                   borderRadius: '2px',
                   backgroundColor: index + 1 <= currentStep ? '#3B82F6' : '#E5E7EB',
-                  transition: 'background-color 0.3s ease'
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transform: index + 1 === currentStep ? 'scaleY(1.2)' : 'scaleY(1)',
+                  boxShadow: index + 1 === currentStep ? '0 0 8px rgba(59, 130, 246, 0.4)' : 'none'
                 }}
               />
             ))}
           </div>
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 20px' }}>
+          <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 16px' }}> {/* Reducido padding */}
             {/* Error global */}
             {error && (
               <div style={{
                 backgroundColor: '#FEF2F2',
                 border: '1px solid #FECACA',
                 color: '#B91C1C',
-                padding: '8px 12px',
+                padding: '6px 10px', // Reducido padding
                 borderRadius: '6px',
-                fontSize: '12px',
-                marginBottom: '12px'
+                fontSize: '11px', // Reducido font size
+                marginBottom: '8px' // Reducido margen
               }}>
                 {error}
               </div>
@@ -490,13 +480,24 @@ export default function Register() {
 
             {/* Paso 1: Información Personal + Login Social */}
             {currentStep === 1 && (
+              <div
+                style={{
+                  opacity: isAnimating ? 0.3 : 1,
+                  transform: isAnimating 
+                    ? direction === 'next' 
+                      ? 'translateX(-20px)' 
+                      : 'translateX(20px)'
+                    : 'translateX(0)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
               <div>
                 {/* Login Social */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px',
-                  marginBottom: '16px'
+                  gap: '6px', // Reducido de 8px
+                  marginBottom: '12px' // Reducido de 16px
                 }}>
                   <button
                     type="button"
@@ -504,14 +505,15 @@ export default function Register() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
+                      gap: '6px', // Reducido
                       width: '100%',
-                      padding: '10px',
+                      height: '32px', // Altura fija igual a inputs
+                      padding: '0 12px', // Padding horizontal solamente
                       border: '1px solid #E5E7EB',
-                      borderRadius: '8px',
+                      borderRadius: '6px', // Reducido
                       backgroundColor: '#FFFFFF',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '13px', // Reducido
                       fontWeight: '500',
                       color: '#374151',
                       transition: 'all 0.2s ease',
@@ -539,18 +541,19 @@ export default function Register() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
-                        padding: '10px',
+                        gap: '4px', // Reducido para botones más pequeños
+                        height: '32px', // Altura fija igual a inputs
+                        padding: '0 8px', // Padding horizontal solamente
                         border: '1px solid #E5E7EB',
-                        borderRadius: '8px',
+                        borderRadius: '6px', // Reducido
                         backgroundColor: '#FFFFFF',
                         cursor: 'pointer',
-                        fontSize: '14px',
+                        fontSize: '12px', // Reducido más para que quepa
                         fontWeight: '500',
                         color: '#374151',
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24">
+                      <svg width="14" height="14" viewBox="0 0 24 24">
                         <path fill="#1877f2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                       </svg>
                       Facebook
@@ -562,18 +565,19 @@ export default function Register() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
-                        padding: '10px',
+                        gap: '4px', // Reducido
+                        height: '32px', // Altura fija igual a inputs
+                        padding: '0 8px', // Padding horizontal solamente
                         border: '1px solid #E5E7EB',
-                        borderRadius: '8px',
+                        borderRadius: '6px', // Reducido
                         backgroundColor: '#000000',
                         cursor: 'pointer',
-                        fontSize: '14px',
+                        fontSize: '12px', // Reducido
                         fontWeight: '500',
                         color: '#FFFFFF',
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24">
+                      <svg width="14" height="14" viewBox="0 0 24 24">
                         <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                       </svg>
                       Apple
@@ -585,11 +589,11 @@ export default function Register() {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  margin: '16px 0',
-                  gap: '12px'
+                  margin: '12px 0', // Reducido de 16px
+                  gap: '8px' // Reducido de 12px
                 }}>
                   <div style={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
-                  <span style={{ fontSize: '12px', color: '#6B7280' }}>o</span>
+                  <span style={{ fontSize: '11px', color: '#6B7280' }}>o</span>
                   <div style={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
                 </div>
 
@@ -597,7 +601,7 @@ export default function Register() {
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: '8px',
+                  gap: '6px', // Reducido de 8px
                   marginBottom: '3px'
                 }}>
                   <div style={styles.fieldGroup}>
@@ -650,8 +654,9 @@ export default function Register() {
                       {...register("password")}
                       placeholder="Tu contraseña"
                       style={{
-                        width: '95%',
-                        height: '20px'
+                        width: '80%',
+                        height: '20px',
+                        paddingRight: '40px'
                       }}
                     />
                     <button
@@ -659,7 +664,7 @@ export default function Register() {
                       onClick={() => setShowPassword(!showPassword)}
                       style={{
                         position: 'absolute',
-                        right: '10px',
+                        right: '12px',
                         top: '50%',
                         transform: 'translateY(-50%)',
                         background: 'none',
@@ -710,8 +715,9 @@ export default function Register() {
                       {...register("confirmPassword")}
                       placeholder="Repetí tu contraseña"
                       style={{
-                        width: '95%',
-                        height: '20px'
+                        width: '80%',
+                        height: '20px',
+                        paddingRight: '40px'
                       }}
                     />
                     <button
@@ -719,7 +725,7 @@ export default function Register() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       style={{
                         position: 'absolute',
-                        right: '10px',
+                        right: '12px',
                         top: '50%',
                         transform: 'translateY(-50%)',
                         background: 'none',
@@ -734,10 +740,22 @@ export default function Register() {
                   {errors.confirmPassword && <p style={styles.error}>{errors.confirmPassword.message}</p>}
                 </div>
               </div>
+            </div>
             )}
 
             {/* Paso 2: Documentos y Ubicación */}
             {currentStep === 2 && (
+              <div
+                style={{
+                  opacity: isAnimating ? 0.3 : 1,
+                  transform: isAnimating 
+                    ? direction === 'next' 
+                      ? 'translateX(-20px)' 
+                      : 'translateX(20px)'
+                    : 'translateX(0)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
               <div>
                 {/* Documento */}
                 <div style={{
@@ -876,10 +894,22 @@ export default function Register() {
                   />
                 </div>
               </div>
+            </div>
             )}
 
             {/* Paso 3: Foto de perfil y Términos */}
             {currentStep === 3 && (
+              <div
+                style={{
+                  opacity: isAnimating ? 0.3 : 1,
+                  transform: isAnimating 
+                    ? direction === 'next' 
+                      ? 'translateX(-20px)' 
+                      : 'translateX(20px)'
+                    : 'translateX(0)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
               <div>
                 <div style={{
                   textAlign: 'center',
@@ -1098,6 +1128,7 @@ export default function Register() {
                   </p>
                 )}
               </div>
+            </div>
             )}
 
             {/* Botones de navegación */}
@@ -1111,6 +1142,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={prevStep}
+                  disabled={isAnimating}
                   style={{
                     flex: 1,
                     padding: '10px 16px',
@@ -1120,7 +1152,10 @@ export default function Register() {
                     color: '#374151',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: 'pointer',
+                    cursor: isAnimating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    opacity: isAnimating ? 0.5 : 1,
+                    transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -1132,21 +1167,29 @@ export default function Register() {
                 <AnimatedButton
                   type="button"
                   onClick={nextStep}
+                  disabled={isAnimating}
                   style={{
                     flex: currentStep === 1 ? 1 : 1,
                     padding: '10px 16px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    opacity: isAnimating ? 0.7 : 1,
+                    transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: isAnimating ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  Siguiente
+                  {isAnimating ? 'Cargando...' : 'Siguiente'}
                 </AnimatedButton>
               ) : (
                 <AnimatedButton
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || isAnimating}
                   style={{
                     flex: 1,
                     padding: '10px 16px',
+                    opacity: (loading || isAnimating) ? 0.7 : 1,
+                    transform: (loading || isAnimating) ? 'scale(0.98)' : 'scale(1)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     fontSize: '14px',
                     opacity: loading ? 0.6 : 1
                   }}
@@ -1172,7 +1215,8 @@ export default function Register() {
               ¿Ya tenés cuenta?{" "}
               <button
                 type="button"
-                onClick={() => navigate("/login")}
+                onClick={() => router.toLogin('register')}
+                disabled={router.isTransitioning}
                 style={{
                   color: '#3B82F6',
                   background: 'none',
@@ -1180,15 +1224,66 @@ export default function Register() {
                   textDecoration: 'underline',
                   cursor: 'pointer',
                   fontWeight: '500',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  opacity: router.isTransitioning ? 0.6 : 1
                 }}
               >
                 Iniciá sesión
               </button>
             </p>
           </div>
-        </div>
-      </div>
-    </BeamsBackground>
+          </AuthCardContent>
+        </AuthCard>
+        </AuthCardTransition>
+      </AuthCenterWrap>
+      
+      {/* Estilos CSS para animaciones y efectos hover */}
+      <style jsx>{`
+        button:hover:not(:disabled) {
+          transform: translateY(-1px) !important;
+        }
+        
+        button:active:not(:disabled) {
+          transform: translateY(0px) scale(0.98) !important;
+        }
+        
+        .progress-bar:hover {
+          transform: scaleY(1.4) !important;
+          box-shadow: 0 0 12px rgba(59, 130, 246, 0.3) !important;
+        }
+        
+        @keyframes slideInRight {
+          0% {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideInLeft {
+          0% {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes fadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+      `}</style>
+    </AuthLayout>
   );
 }

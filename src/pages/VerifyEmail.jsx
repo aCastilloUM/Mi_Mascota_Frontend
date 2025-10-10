@@ -2,9 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiCheck, FiX, FiMail } from "react-icons/fi";
 
-import logoTop from "../assets/logos/dog+cat.png";
-import { BeamsBackground } from "../components/ui/BeamsBackground";
 import { AnimatedButton } from "../components/ui/AnimatedButton";
+import { AuthLayout, AuthCenterWrap } from "../components/ui/AuthLayout";
+import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
+import { Logo, LogoWrap } from "../components/ui/Logo";
+import { useResponsiveText } from "../hooks/useResponsiveText";
+import { useResponsive } from "../hooks/useResponsive";
 import { verifyEmail } from "../lib/api";
 
 // Componente de animación de verificación exitosa
@@ -52,6 +55,8 @@ const ErrorAnimation = ({ size = "80px" }) => {
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { title, body, small } = useResponsiveText();
+  const { height } = useResponsive();
   const [status, setStatus] = useState("loading"); // loading, success, error
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(3);
@@ -159,8 +164,8 @@ export default function VerifyEmail() {
             </div>
           </div>
 
-          <h1 style={styles.title}>Verificando tu email...</h1>
-          <p style={styles.subtitle}>
+          <h1 style={{ ...styles.title, fontSize: title }}>Verificando tu email...</h1>
+          <p style={{ ...styles.subtitle, fontSize: body }}>
             Por favor espera mientras procesamos tu verificación.
           </p>
         </div>
@@ -180,17 +185,18 @@ export default function VerifyEmail() {
 
         <h1 style={{
           ...styles.title,
+          fontSize: title,
           color: status === "success" ? "#10B981" : "#EF4444"
         }}>
           {status === "success" ? "¡Email Verificado!" : "Error de Verificación"}
         </h1>
         
-        <p style={styles.subtitle}>
+        <p style={{ ...styles.subtitle, fontSize: body }}>
           {message}
         </p>
 
         {status === "success" && (
-          <p style={styles.redirectInfo}>
+          <p style={{ ...styles.redirectInfo, fontSize: small }}>
             Redirigiendo al login en {countdown} segundos...
           </p>
         )}
@@ -227,32 +233,28 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div style={styles.screen}>
-      <BeamsBackground />
-
-      {/* Botón cerrar (arriba-derecha) */}
-      <button aria-label="Cerrar" onClick={handleGoToLogin} style={styles.closeBtn}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 5L13 13M13 5L5 13" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-        </svg>
-      </button>
-
-      <div style={styles.centerWrap}>
+    <AuthLayout>
+      <AuthCenterWrap>
         {/* Logo pegado */}
-        <div style={styles.logoWrap}>
-          <img src={logoTop} alt="Mi Mascota" style={styles.logoImg} />
-        </div>
+        <LogoWrap>
+          <Logo />
+        </LogoWrap>
 
         {/* Card con animación de transición */}
-        <div style={{
-          ...styles.card,
-          opacity: animationPhase === "enter" ? 0 : 1,
-          transform: animationPhase === "enter" ? "translateY(20px)" : "translateY(0)",
-          transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
-        }}>
-          {renderContent()}
-        </div>
-      </div>
+        <AuthCard 
+          cardType="verify-email"
+          autoHeight={true}
+          style={{
+            opacity: animationPhase === "enter" ? 0 : 1,
+            transform: animationPhase === "enter" ? "translateY(20px)" : "translateY(0)",
+            transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+          }}
+        >
+          <AuthCardContent>
+            {renderContent()}
+          </AuthCardContent>
+        </AuthCard>
+      </AuthCenterWrap>
 
       {/* Estilos CSS para animaciones */}
       <style jsx>{`
@@ -336,7 +338,7 @@ export default function VerifyEmail() {
           50% { transform: translateY(-20px) rotate(1deg); }
         }
       `}</style>
-    </div>
+    </AuthLayout>
   );
 }
 
@@ -344,74 +346,6 @@ export default function VerifyEmail() {
 const rounded = "'Segoe UI Rounded', 'Arial Rounded MT Bold', Arial, sans-serif";
 
 const styles = {
-  closeBtn: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    zIndex: 3,
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.22)",
-    background: "rgba(14, 20, 42, 0.55)",
-    backdropFilter: "blur(6px)",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-    color: "#fff",
-  },
-  screen: {
-    position: "fixed",
-    inset: 0,
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
-    fontFamily: rounded,
-    color: "#0A0F1E",
-  },
-  centerWrap: {
-    position: "relative",
-    zIndex: 1,
-    width: "100%",
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: "90px 16px 40px",     
-    boxSizing: "border-box",
-  },
-  logoWrap: {
-    position: "relative",
-    zIndex: 2,
-    marginBottom: -36,
-    display: "grid",
-    placeItems: "center",
-    width: "100%",
-  },
-  logoImg: {
-    width: 130,
-    height: 130,
-    objectFit: "contain",
-    filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.35))",
-  },
-  card: {
-    position: "relative",
-    width: "100%",
-    maxWidth: "320px",
-    maxHeight: "calc(100vh - 120px)",
-    display: "flex",
-    flexDirection: "column",
-    margin: "0 auto",
-    borderRadius: 12,
-    background: "rgba(255,255,255,0.95)",
-    border: "1px solid rgba(255,255,255,0.25)",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-    backdropFilter: "blur(6px)",
-    overflow: "hidden",
-    paddingTop: 32,
-    paddingBottom: 32,
-  },
   content: {
     padding: "0 20px",
   },
