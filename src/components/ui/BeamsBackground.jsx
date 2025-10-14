@@ -42,19 +42,28 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
+        // Mantener las dimensiones en "CSS pixels" para usar en dibujo/posición
+        let cssWidth = 0;
+        let cssHeight = 0;
+
         const updateCanvasSize = () => {
             // Optimización para móviles: usar devicePixelRatio más conservador
             const dpr = isMobileDevice() ? Math.min(window.devicePixelRatio || 1, 2) : window.devicePixelRatio || 1;
             const width = window.innerWidth;
             const height = window.innerHeight;
-            
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
+
+            cssWidth = width;
+            cssHeight = height;
+
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
-            ctx.scale(dpr, dpr);
 
-            const totalBeams = MINIMUM_BEAMS * (isMobileDevice() ? 1 : 1.5);
+            // Evitar acumulación de escala en redimensiones
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            const totalBeams = Math.floor(MINIMUM_BEAMS * (isMobileDevice() ? 1 : 1.5));
             beamsRef.current = Array.from({ length: totalBeams }, () =>
                 createBeam(width, height)
             );
@@ -65,19 +74,21 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
 
         function resetBeam(beam, index, totalBeams) {
             if (!canvas) return beam;
-            
-            const column = index % 3;
-            const spacing = canvas.width / 3;
 
-            beam.y = canvas.height + 100;
+            // Usar cssWidth / cssHeight (no device pixels) para posicionar
+            const column = index % 3;
+            const spacing = cssWidth / 3;
+
+            beam.y = cssHeight + 100;
             beam.x =
                 column * spacing +
                 spacing / 2 +
                 (Math.random() - 0.5) * spacing * 0.5;
             beam.width = 100 + Math.random() * 100;
             beam.speed = 0.5 + Math.random() * 0.4;
-            beam.hue = 180 + (index * 40) / totalBeams; // Rango celeste
-            beam.opacity = 0.25 + Math.random() * 0.15;
+            beam.hue = 190 + (index * 70) / totalBeams; // Rango celeste
+            beam.opacity = 0.2 + Math.random() * 0.1;
+            beam.length = cssHeight * 2.5;
             return beam;
         }
 
@@ -91,27 +102,28 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
                 (0.8 + Math.sin(beam.pulse) * 0.2) *
                 opacityMap[intensity];
 
+            // Usar tonos celestes más visibles (más saturación/luminosidad) y alpha controlada
             const gradient = ctx.createLinearGradient(0, 0, 0, beam.length);
 
-            // Gradiente con tonos celestes más claros
-            gradient.addColorStop(0, `hsla(${beam.hue}, 70%, 75%, 0)`);
+            // stops: mantener transparencia en extremos pero colores más "celestes" en el centro
+            gradient.addColorStop(0, `hsla(${beam.hue}, 90%, 80%, 0)`);
             gradient.addColorStop(
-                0.1,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity * 0.5})`
+                0.12,
+                `hsla(${beam.hue}, 90%, 75%, ${pulsingOpacity * 0.45})`
             );
             gradient.addColorStop(
-                0.4,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity})`
+                0.45,
+                `hsla(${beam.hue}, 90%, 72%, ${pulsingOpacity * 0.9})`
             );
             gradient.addColorStop(
-                0.6,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity})`
+                0.65,
+                `hsla(${beam.hue}, 90%, 72%, ${pulsingOpacity * 0.9})`
             );
             gradient.addColorStop(
                 0.9,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity * 0.5})`
+                `hsla(${beam.hue}, 90%, 75%, ${pulsingOpacity * 0.45})`
             );
-            gradient.addColorStop(1, `hsla(${beam.hue}, 70%, 75%, 0)`);
+            gradient.addColorStop(1, `hsla(${beam.hue}, 90%, 80%, 0)`);
 
             ctx.fillStyle = gradient;
             ctx.fillRect(-beam.width / 2, 0, beam.width, beam.length);
@@ -124,18 +136,23 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
             // Optimización: Limitar FPS en móviles para mejor rendimiento
             const targetFPS = isMobileDevice() ? 30 : 60;
             const frameInterval = 1000 / targetFPS;
-            
+
             if (currentTime - lastFrameTimeRef.current < frameInterval) {
                 animationFrameRef.current = requestAnimationFrame(animate);
                 return;
             }
-            
+
             lastFrameTimeRef.current = currentTime;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Reducir blur en móviles para mejor rendimiento
-            ctx.filter = isMobileDevice() ? "blur(20px)" : "blur(35px)";
+            // Limpiar en CSS pixels (coherente con transform)
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+            // Aplicar blur desde el contexto (ligeramente menor para no lavar colores)
+            ctx.filter = isMobileDevice() ? "blur(14px)" : "blur(22px)";
+
+            // Usar un modo de mezcla para mantener los colores y evitar bordes blancos fuertes
+            const previousComposite = ctx.globalCompositeOperation;
+            ctx.globalCompositeOperation = "screen";
 
             const totalBeams = beamsRef.current.length;
             beamsRef.current.forEach((beam, index) => {
@@ -150,6 +167,9 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
 
                 drawBeam(ctx, beam);
             });
+
+            // restaurar modo de composición por si se reutiliza el contexto en otro sitio
+            ctx.globalCompositeOperation = previousComposite;
 
             animationFrameRef.current = requestAnimationFrame(animate);
         }
@@ -187,7 +207,8 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
     return (
         <div className={`relative w-full overflow-hidden ${className}`}
              style={{ 
-                 background: 'linear-gradient(135deg, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)',
+                 // Fondo celeste suave
+                 background: 'linear-gradient(135deg, #9ce3f8ff 0%, #4e8cadff 50%, #59a0c9ff 100%)',
                  minHeight: '100vh',
                  position: 'fixed',
                  top: 0,
@@ -199,15 +220,7 @@ export function BeamsBackground({ className = "", children, intensity = "medium"
             <canvas
                 ref={canvasRef}
                 className="absolute inset-0"
-                style={{ filter: "blur(15px)" }}
-            />
-
-            <div 
-                className="absolute inset-0"
-                style={{
-                    background: 'rgba(135, 206, 235, 0.1)',
-                    backdropFilter: "blur(50px)",
-                }}
+                style={{ pointerEvents: "none" }}
             />
 
             <div className="relative w-full h-full" style={{ zIndex: 10 }}>
