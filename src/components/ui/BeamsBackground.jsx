@@ -17,12 +17,6 @@ function createBeam(width, height) {
     };
 }
 
-const isMobileDevice = () => {
-    if (typeof navigator === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        (typeof window !== 'undefined' && window.innerWidth < 768);
-};
-
 export function BeamsBackground({ className = "", children, intensity = "medium" }) {
     const canvasRef = useRef(null);
     const beamsRef = useRef([]);
