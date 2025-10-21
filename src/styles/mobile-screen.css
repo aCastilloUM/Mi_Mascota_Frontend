@@ -1,0 +1,65 @@
+.mobile-screen {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top, 0px) + clamp(16px, 4vw, 28px)) clamp(16px, 5vw, 28px) clamp(24px, 6vw, 40px);
+  gap: clamp(16px, 4vw, 28px);
+  box-sizing: border-box;
+  background: radial-gradient(circle at top, #0f1b36 0%, #071123 40%, #030712 100%);
+  color: #f8fafc;
+}
+
+.mobile-screen--map {
+  background: radial-gradient(circle at top, #0c1d39 0%, #06152b 45%, #020714 100%);
+}
+
+.mobile-screen__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.mobile-screen__content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.mobile-screen__card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 22px 48px rgba(2, 6, 23, 0.35);
+  color: rgba(241, 245, 249, 0.92);
+}
+
+.mobile-screen__card h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #e0f2fe;
+}
+
+.mobile-screen__card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* Responsive por JS: elimina media queries, usa clamp para layout */
+.mobile-screen {
+  padding: calc(env(safe-area-inset-top, 0px) + clamp(16px, 4vw, 34px)) clamp(16px, 5vw, 72px) calc(env(safe-area-inset-bottom, 0px) + clamp(24px, 6vw, 48px));
+  gap: clamp(16px, 4vw, 32px);
+  justify-items: center;
+}
+.mobile-screen__content {
+  width: min(680px, 100%);
+  padding: 0;
+}

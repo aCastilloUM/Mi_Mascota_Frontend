@@ -37,8 +37,10 @@ const UniqueLoading = ({ size = "1g", className = "" }) => {
 export default function EmailVerificationPending() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { title, body } = useResponsiveText();
-  const { height } = useResponsive();
+  const { width, height, widthPercent, heightPercent } = useResponsive();
+  // Tamaños de fuente proporcionales
+  const title = `${Math.max(18, Math.min(widthPercent(4.1), 22))}px`;
+  const body = `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`;
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60); // 60 segundos para reenviar
   const [canResend, setCanResend] = useState(false);

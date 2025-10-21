@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { PageTransition, useMainNavigation } from './animations';
+import BottomNavbar from './components/BottomNavbar.jsx';
 import { AuthProvider } from './context/AuthContext';
 
 // Páginas de autenticación (usando AuthCardTransition internamente)
@@ -16,12 +17,18 @@ function MainLayout() {
   const router = useMainNavigation();
   
   return (
-    <PageTransition {...router.getPageProps()}>
-      <div className="main-layout">
-        {/* Header, sidebar, etc. */}
-        <Outlet />
-      </div>
-    </PageTransition>
+    <>
+      <PageTransition {...router.getPageProps()}>
+        <div className="main-layout">
+          {/* Header, sidebar, etc. */}
+          <Outlet />
+        </div>
+      </PageTransition>
+
+      {/* Navbar montado fuera de PageTransition para evitar que desaparezca
+          cuando el wrapper aplica transform/opacity */}
+      <BottomNavbar />
+    </>
   );
 }
 

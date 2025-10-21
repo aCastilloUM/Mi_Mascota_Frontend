@@ -40,11 +40,19 @@ export const useSmartCardHeight = (cardType = 'auto') => {
       }
     };
 
+    // Guardar el último viewport height para evitar recalcular ante cambios pequeños (p. ej. hide/show address bar móvil)
+    const prevViewportHeightRef = { current: null };
+    let analyzeTimer = null;
+
     const analyzeContent = () => {
       if (cardRef.current) {
         const contentElement = cardRef.current.querySelector('[data-card-content]') || cardRef.current;
         const contentHeight = contentElement.scrollHeight;
-        const viewportHeight = height;
+        // Preferir visualViewport cuando esté disponible (más precisa en móviles durante scroll)
+        const viewportHeight = (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height)
+          ? window.visualViewport.height
+          : height;
+
         const availableHeight = isMobile ? viewportHeight * 0.75 : viewportHeight * 0.85;
         
         // Métricas para detección inteligente
@@ -87,6 +95,18 @@ export const useSmartCardHeight = (cardType = 'auto') => {
           }
         }
 
+        // Actualizar prevViewportHeight para la próxima ejecución
+        prevViewportHeight = viewportHeight;
+
+        // Evitar re-configurar si el cambio de viewport es pequeño y el contenido no excede el espacio disponible
+        if (prevViewportHeightRef.current && Math.abs(prevViewportHeightRef.current - viewportHeight) < 80 && !metrics.exceedsViewport && !metrics.isContentDense) {
+          // sólo actualizar prevViewportHeightRef y no setear configuración para evitar flicker
+          prevViewportHeightRef.current = viewportHeight;
+          return;
+        }
+
+        prevViewportHeightRef.current = viewportHeight;
+
         setCardConfig({
           ...config,
           shouldUseFixedHeight: !config.autoHeight,
@@ -109,18 +129,29 @@ export const useSmartCardHeight = (cardType = 'auto') => {
     };
 
     // Analizar después de que el DOM se actualice
-    const timer = setTimeout(analyzeContent, 150);
-    
-    // Re-analizar en cambios de tamaño
-    const handleResize = () => {
-      setTimeout(analyzeContent, 100);
+    analyzeTimer = setTimeout(analyzeContent, 150);
+
+    // Re-analizar en cambios de tamaño y en visualViewport (móviles)
+    const scheduleAnalyze = () => {
+      if (analyzeTimer) clearTimeout(analyzeTimer);
+      analyzeTimer = setTimeout(analyzeContent, 120);
     };
-    
+
+    const handleResize = scheduleAnalyze;
     window.addEventListener('resize', handleResize);
-    
+
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleAnalyze);
+      window.visualViewport.addEventListener('scroll', scheduleAnalyze);
+    }
+
     return () => {
-      clearTimeout(timer);
+      if (analyzeTimer) clearTimeout(analyzeTimer);
       window.removeEventListener('resize', handleResize);
+      if (typeof window !== 'undefined' && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', scheduleAnalyze);
+        window.visualViewport.removeEventListener('scroll', scheduleAnalyze);
+      }
     };
   }, [cardType, height, width, isMobile]);
 

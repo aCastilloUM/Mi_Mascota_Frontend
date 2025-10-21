@@ -26,9 +26,13 @@ export default function Login() {
   const router = useAuthNavigation(); // 🎯 Usar el nuevo hook de navegación animada
   
   const params = useMemo(() => new URLSearchParams(search), [search]);
-  const { title: titleSize, body: bodySize, label: labelSize, small: smallSize, button: buttonSize } = useResponsiveText();
-  const { height } = useResponsive();
-  
+  const { width, height, widthPercent, heightPercent } = useResponsive();
+  // Tamaños de fuente proporcionales
+  const titleSize = `${Math.max(18, Math.min(widthPercent(4.1), 22))}px`;
+  const bodySize = `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`;
+  const labelSize = `${Math.max(12, Math.min(widthPercent(2.8), 15))}px`;
+  const smallSize = `${Math.max(10, Math.min(widthPercent(2.2), 13))}px`;
+  const buttonSize = `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`;
   // Crear estilos con tamaños responsive
   const styles = useMemo(() => createStyles(titleSize, bodySize, labelSize, smallSize, buttonSize), [titleSize, bodySize, labelSize, smallSize, buttonSize]);
   const next = params.get("next") || "/home";

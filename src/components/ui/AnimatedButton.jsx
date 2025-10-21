@@ -1,4 +1,5 @@
 import React from "react";
+import { useResponsive } from "../../hooks/useResponsive";
 
 export const AnimatedButton = React.forwardRef(({ 
   variant = "default", 
@@ -11,22 +12,24 @@ export const AnimatedButton = React.forwardRef(({
   const [isHovered, setIsHovered] = React.useState(false);
   const [isPressed, setIsPressed] = React.useState(false);
 
+  const { widthPercent, heightPercent } = useResponsive();
   const getBaseStyle = () => {
+    // Tamaños proporcionales
     const baseSize = size === 'sm' ? {
-      height: '34px',
-      padding: '0 16px',
-      fontSize: '13px',
-      borderRadius: '8px'
+      height: `${Math.max(28, Math.min(heightPercent(5), 38))}px`,
+      padding: `0 ${Math.max(10, Math.min(widthPercent(4), 18))}px`,
+      fontSize: `${Math.max(12, Math.min(widthPercent(2.8), 15))}px`,
+      borderRadius: `${Math.max(6, Math.min(widthPercent(2.2), 10))}px`
     } : size === 'lg' ? {
-      height: '46px',
-      padding: '0 24px',
-      fontSize: '15px',
-      borderRadius: '12px'
+      height: `${Math.max(38, Math.min(heightPercent(7), 54))}px`,
+      padding: `0 ${Math.max(16, Math.min(widthPercent(6), 32))}px`,
+      fontSize: `${Math.max(14, Math.min(widthPercent(3.5), 18))}px`,
+      borderRadius: `${Math.max(10, Math.min(widthPercent(3.2), 16))}px`
     } : {
-      height: '40px',
-      padding: '0 20px',
-      fontSize: '14px',
-      borderRadius: '10px'
+      height: `${Math.max(32, Math.min(heightPercent(6), 44))}px`,
+      padding: `0 ${Math.max(12, Math.min(widthPercent(5), 24))}px`,
+      fontSize: `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`,
+      borderRadius: `${Math.max(8, Math.min(widthPercent(2.8), 12))}px`
     };
 
     return {

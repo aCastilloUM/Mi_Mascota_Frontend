@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BeamsBackground } from "./BeamsBackground";
 import { useResponsive } from "../../hooks/useResponsive";
 
@@ -9,12 +9,22 @@ export const AuthLayout = ({
   style = {},
   showBeamsBackground = true 
 }) => {
+  useEffect(() => {
+    // Asegurar que el body pueda hacer scroll y que el fondo permanezca visible
+    document.body.classList.add('auth-scroll-enabled');
+    document.documentElement.classList.add('auth-scroll-enabled');
+    return () => {
+      document.body.classList.remove('auth-scroll-enabled');
+      document.documentElement.classList.remove('auth-scroll-enabled');
+    };
+  }, []);
   const screenStyle = {
-    position: "fixed",
+    position: "relative",
     inset: 0,
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
+    width: "100%",
+    minHeight: "100vh",
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
     fontFamily: rounded,
     color: "#0A0F1E",
     ...style
@@ -22,6 +32,7 @@ export const AuthLayout = ({
 
   return (
     <div style={screenStyle}>
+      {/* El fondo se mantiene fixed y detrás del contenido para que sea visible al hacer scroll */}
       {showBeamsBackground && <BeamsBackground />}
       {children}
     </div>
@@ -33,36 +44,28 @@ export const AuthCenterWrap = ({
   padding,
   style = {}
 }) => {
-  const { width, height } = useResponsive();
-  
-  // Cálculo simplificado - el card se encarga de su propia altura
-  const calculateResponsivePadding = (viewportWidth, viewportHeight) => {
-    const logoHeight = 60;
-    const minBottomPadding = 10;
-    const safetyMargin = 40; // Margen de seguridad para navegación móvil
-    
-    // Padding dinámico más conservador
-    const availableSpace = viewportHeight - logoHeight - safetyMargin;
-    const topPaddingPercent = Math.min(availableSpace * 0.1, 40); // 10% del espacio, máximo 40px
-    const topPadding = Math.max(10, topPaddingPercent);
-    
-    return `${topPadding}px clamp(12px, 4vw, 40px) ${minBottomPadding}px`;
+  const { width, height, widthPercent, heightPercent } = useResponsive();
+  // Padding superior/inferior: 8% de la altura, entre 24 y 60px
+  // Padding lateral: 4% del ancho, entre 12 y 32px
+  const responsivePadding = padding || {
+    paddingTop: Math.max(24, Math.min(heightPercent(8), 60)),
+    paddingBottom: Math.max(24, Math.min(heightPercent(8), 60)),
+    paddingLeft: Math.max(12, Math.min(widthPercent(4), 32)),
+    paddingRight: Math.max(12, Math.min(widthPercent(4), 32)),
   };
-
-  const responsivePadding = padding || calculateResponsivePadding(width, height);
 
   const centerWrapStyle = {
     position: "relative",
     zIndex: 1,
     width: "100%",
-    height: "100vh", // Altura fija
+    minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "flex-start", // Cambiar a flex-start para alinear arriba
+    justifyContent: "flex-start",
     alignItems: "center",
-    padding: responsivePadding,
+    ...responsivePadding,
     boxSizing: "border-box",
-    overflow: "hidden", // Sin scroll en el contenedor principal
+    overflow: "visible",
     ...style
   };
 
@@ -71,4 +74,4 @@ export const AuthCenterWrap = ({
       {children}
     </div>
   );
-};
+}

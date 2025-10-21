@@ -5,6 +5,8 @@ import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
 import { Logo, LogoWrap } from "../components/ui/Logo";
 import { useResponsiveText } from "../hooks/useResponsiveText";
 import { useResponsive } from "../hooks/useResponsive";
+import ProgressDots from "../components/onboarding/ProgressDots";
+import OnboardingActions from "../components/onboarding/OnboardingActions";
 import logoTop from "../assets/logos/dog+cat.png";
 
 const defaultSteps = [
@@ -43,7 +45,7 @@ export default function Onboarding({
   const [isAnimating, setIsAnimating] = useState(false);
   const [direction, setDirection] = useState('next'); // 'next' o 'prev'
   const { title, body } = useResponsiveText();
-  const { height } = useResponsive();
+  const { height, widthPercent, heightPercent } = useResponsive();
 
   // Estados para swipe gesture
   const [touchStart, setTouchStart] = useState(null);
@@ -139,8 +141,8 @@ export default function Onboarding({
         <AuthCard 
           cardType="onboarding"
           autoHeight={true}
-          style={{ 
-            maxHeight: "calc(100vh - 140px)",
+          style={{
+            maxHeight: `calc(100vh - ${Math.max(80, Math.min(heightPercent(8), 140))}px)`,
             minHeight: "auto"
           }}
           onTouchStart={onTouchStart}
@@ -179,71 +181,33 @@ export default function Onboarding({
           <div style={{ marginTop: "auto", paddingTop: "10px" }}>
             {/* Indicadores de progreso */}
             <div style={styles.progress}>
-              {steps.map((_, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-                    if (!isAnimating && index !== step) {
-                      setIsAnimating(true);
-                      setDirection(index > step ? 'next' : 'prev');
-                      setTimeout(() => {
-                        setStep(index);
-                        setTimeout(() => setIsAnimating(false), 50);
-                      }, 150);
-                    }
-                  }}
-                  style={{
-                    ...styles.dot,
-                    ...(index === step ? styles.activeDot : {}),
-                    ...(index < step ? styles.completedDot : {})
-                  }}
-                />
-              ))}
+              <ProgressDots
+                steps={steps}
+                step={step}
+                dotSize={Math.max(6, Math.min(widthPercent(1.2), 12))}
+                onClick={(index) => {
+                  if (!isAnimating && index !== step) {
+                    setIsAnimating(true);
+                    setDirection(index > step ? 'next' : 'prev');
+                    setTimeout(() => {
+                      setStep(index);
+                      setTimeout(() => setIsAnimating(false), 50);
+                    }, 150);
+                  }
+                }}
+              />
             </div>
 
             {/* Botones de acción */}
-            <div style={styles.actions}>
-              <button 
-                onClick={skip} 
-                style={{
-                  ...styles.skipBtn,
-                  opacity: isAnimating ? 0.5 : 1,
-                  cursor: isAnimating ? "not-allowed" : "pointer"
-                }}
-                disabled={isAnimating}
-              >
-                {skipLabel}
-              </button>
-              <button 
-                onClick={next} 
-                style={{
-                  ...styles.nextBtn,
-                  background: isAnimating 
-                    ? "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)"
-                    : "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-                  cursor: isAnimating ? "not-allowed" : "pointer",
-                  boxShadow: isAnimating 
-                    ? "0 2px 6px rgba(107, 114, 128, 0.2)"
-                    : "0 4px 12px rgba(59, 130, 246, 0.3)",
-                  transform: isAnimating ? "scale(0.98)" : "scale(1)",
-                  opacity: isAnimating ? 0.7 : 1
-                }}
-                disabled={isAnimating}
-              >
-                {isLastStep ? finalLabel : nextLabel}
-                {!isLastStep && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={styles.arrow}>
-                    <path 
-                      d="M6 4L10 8L6 12" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
-            </div>
+            <OnboardingActions
+              isLastStep={isLastStep}
+              isAnimating={isAnimating}
+              skipLabel={skipLabel}
+              nextLabel={nextLabel}
+              finalLabel={finalLabel}
+              onSkip={skip}
+              onNext={next}
+            />
           </div>
           </AuthCardContent>
         </AuthCard>

@@ -1,23 +1,106 @@
+/* Responsive por JS: elimina media queries, usa 100dvh y clamp para layout */
+/* Global box-sizing and horizontal overflow protection */
+:root { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+
+html, body {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  overscroll-behavior-y: none !important;
+  width: 100% !important;
+  position: static !important;
+  overflow-x: hidden !important;
+}
+
+/* When an auth layout is active we enable scrolling so that pages like
+   Register can scroll while the animated background stays fixed. */
+body.auth-scroll-enabled, html.auth-scroll-enabled {
+  overflow: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overscroll-behavior-y: auto !important;
+  background: transparent !important;
+}
+.home-screen__content-inner.scrollable-card {
+  max-height: calc(100dvh - clamp(100px, 12vh, 120px));
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+}
+  .home-screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #0f4c81 82%, #2563eb 72%);
+    overflow: hidden;
+  }
+  .home-screen__content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .home-screen__content-inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 120px); /* header+navbar aprox */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
 body {
+  background: linear-gradient(135deg, #0f4c81 82%, #2563eb 72%);
+  min-height: 100vh;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+}
+
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 101;
+}
+
+.scrollable-card {
+  max-height: calc(100vh - 120px); /* Ajusta según altura de header+navbar */
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 2px 16px rgba(15, 23, 42, 0.12);
+  padding: 18px 16px;
+  margin: 24px auto;
+  width: 100%;
+  max-width: var(--home-content-max-width);
+}
+:root{
+  /* fallback variable for older iOS to avoid compile errors */
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  /* allow scrolling when content overflows; hiding overflow breaks fixed elements on iOS */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
-
-html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useResponsive } from "../../hooks/useResponsive";
 
 export const AnimatedInput = React.forwardRef(({ 
   type = 'text',
@@ -11,13 +12,15 @@ export const AnimatedInput = React.forwardRef(({
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Usar unidades basadas en ancho (vw) con clamp para evitar que el campo cambie de tamaño cuando
+  // visualViewport cambia al scrollear en móviles (hide/show address bar).
   const baseStyle = {
     width: '100%',
-    height: '32px', // Reducido de 36px a 32px
-    padding: '6px 10px', // Reducido padding
-    borderRadius: '6px', // Reducido de 8px
+    height: 'clamp(28px, 4.5vw, 38px)',
+    padding: 'clamp(4px, 1.2vw, 8px) clamp(8px, 3vw, 18px)',
+    borderRadius: 'clamp(6px, 2.2vw, 10px)',
     outline: 'none',
-    fontSize: '13px', // Reducido de 14px
+    fontSize: 'clamp(12px, 2.8vw, 15px)',
     backgroundColor: '#FFFFFF',
     fontFamily: 'inherit',
     transition: 'all 0.2s ease',
@@ -76,11 +79,11 @@ export const AnimatedSelect = React.forwardRef(({
 
   const baseStyle = {
     width: '100%',
-    height: '36px',
-    padding: '6px 12px',
-    borderRadius: '8px',
+    height: 'clamp(36px, 3.5vw, 44px)',
+    padding: 'clamp(6px, 1.5vw, 10px) clamp(12px, 3vw, 18px)',
+    borderRadius: 'clamp(8px, 2.2vw, 12px)',
     outline: 'none',
-    fontSize: '14px',
+    fontSize: 'clamp(14px, 2.6vw, 16px)',
     backgroundColor: '#FFFFFF',
     fontFamily: 'inherit',
     transition: 'all 0.2s ease',

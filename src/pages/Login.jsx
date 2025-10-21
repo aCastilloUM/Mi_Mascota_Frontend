@@ -26,9 +26,13 @@ export default function Login() {
   const router = useAuthNavigation();
   const { search, state } = useLocation();
   const params = useMemo(() => new URLSearchParams(search), [search]);
-  const { title: titleSize, body: bodySize, label: labelSize, small: smallSize, button: buttonSize } = useResponsiveText();
-  const { height } = useResponsive();
-  
+  const { width, height, widthPercent, heightPercent } = useResponsive();
+  // Tamaños de fuente proporcionales
+  const titleSize = `${Math.max(18, Math.min(widthPercent(4.1), 22))}px`;
+  const bodySize = `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`;
+  const labelSize = `${Math.max(12, Math.min(widthPercent(2.8), 15))}px`;
+  const smallSize = `${Math.max(10, Math.min(widthPercent(2.2), 13))}px`;
+  const buttonSize = `${Math.max(13, Math.min(widthPercent(3.2), 16))}px`;
   // Crear estilos con tamaños responsive
   const styles = useMemo(() => createStyles(titleSize, bodySize, labelSize, smallSize, buttonSize), [titleSize, bodySize, labelSize, smallSize, buttonSize]);
   const next = params.get("next") || "/home";
@@ -160,8 +164,8 @@ export default function Login() {
                     autoComplete="email"
                     {...register("email")}
                     style={{
-                      width: '80%',
-                      height: '20px',
+                      width: '100%',
+                      height: '32px',
                       paddingRight: '40px',
                       ...(errors.email ? styles.inputError : touchedFields.email ? styles.inputOk : null),
                     }}
@@ -180,8 +184,8 @@ export default function Login() {
                       autoComplete="current-password"
                       {...register("password")}
                       style={{
-                        width: '80%',
-                        height: '20px',
+                        width: '100%',
+                        height: '32px',
                         paddingRight: '40px',
                         ...(errors.password ? styles.inputError : touchedFields.password ? styles.inputOk : null),
                       }}
@@ -297,7 +301,7 @@ export default function Login() {
       </AuthCenterWrap>
 
       {/* Estilos CSS para animaciones */}
-      <style jsx>{`
+  <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(1deg); }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useResponsive } from "../../hooks/useResponsive";
 
 function createBeam(width, height) {
     const angle = -35 + Math.random() * 10;
@@ -7,212 +8,145 @@ function createBeam(width, height) {
         y: Math.random() * height * 1.5 - height * 0.25,
         width: 30 + Math.random() * 60,
         length: height * 2.5,
-        angle: angle,
+        angle,
         speed: 0.6 + Math.random() * 1.2,
-        opacity: 0.15 + Math.random() * 0.20,
-        hue: 180 + Math.random() * 40, // Tonos celestes/azules
+        opacity: 0.15 + Math.random() * 0.2,
+        hue: 180 + Math.random() * 40,
         pulse: Math.random() * Math.PI * 2,
         pulseSpeed: 0.02 + Math.random() * 0.03,
     };
 }
 
-// Detectar si es un dispositivo móvil
 const isMobileDevice = () => {
+    if (typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           window.innerWidth < 768;
+        (typeof window !== 'undefined' && window.innerWidth < 768);
 };
 
 export function BeamsBackground({ className = "", children, intensity = "medium" }) {
     const canvasRef = useRef(null);
     const beamsRef = useRef([]);
-    const animationFrameRef = useRef(0);
-    const lastFrameTimeRef = useRef(0);
-    const MINIMUM_BEAMS = isMobileDevice() ? 10 : 20; // Menos beams en móviles
-
-    const opacityMap = {
-        subtle: 0.7,
-        medium: 0.85,
-        strong: 1,
-    };
+    const animationRef = useRef(0);
+    const lastRef = useRef(0);
+    const { width, height } = useResponsive();
+    const MINIMUM_BEAMS = Math.max(8, Math.floor((width || 800) / 60));
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const updateCanvasSize = () => {
-            // Optimización para móviles: usar devicePixelRatio más conservador
-            const dpr = isMobileDevice() ? Math.min(window.devicePixelRatio || 1, 2) : window.devicePixelRatio || 1;
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            canvas.style.width = `${width}px`;
-            canvas.style.height = `${height}px`;
-            ctx.scale(dpr, dpr);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-            const totalBeams = MINIMUM_BEAMS * (isMobileDevice() ? 1 : 1.5);
-            beamsRef.current = Array.from({ length: totalBeams }, () =>
-                createBeam(width, height)
-            );
+        const updateCanvasSize = () => {
+            const w = Math.max(1, width || window.innerWidth);
+            const h = Math.max(1, height || window.innerHeight);
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            beamsRef.current = Array.from({ length: MINIMUM_BEAMS }, () => createBeam(w, h));
         };
 
         updateCanvasSize();
-        window.addEventListener("resize", updateCanvasSize);
+        window.addEventListener('resize', updateCanvasSize);
 
-        function resetBeam(beam, index, totalBeams) {
-            if (!canvas) return beam;
-            
-            const column = index % 3;
-            const spacing = canvas.width / 3;
+        const opacityMap = { subtle: 0.7, medium: 0.85, strong: 1 };
 
-            beam.y = canvas.height + 100;
-            beam.x =
-                column * spacing +
-                spacing / 2 +
-                (Math.random() - 0.5) * spacing * 0.5;
-            beam.width = 100 + Math.random() * 100;
-            beam.speed = 0.5 + Math.random() * 0.4;
-            beam.hue = 180 + (index * 40) / totalBeams; // Rango celeste
-            beam.opacity = 0.25 + Math.random() * 0.15;
-            return beam;
-        }
-
-        function drawBeam(ctx, beam) {
+        function drawBeam(b) {
             ctx.save();
-            ctx.translate(beam.x, beam.y);
-            ctx.rotate((beam.angle * Math.PI) / 180);
-
-            const pulsingOpacity =
-                beam.opacity *
-                (0.8 + Math.sin(beam.pulse) * 0.2) *
-                opacityMap[intensity];
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, beam.length);
-
-            // Gradiente con tonos celestes más claros
-            gradient.addColorStop(0, `hsla(${beam.hue}, 70%, 75%, 0)`);
-            gradient.addColorStop(
-                0.1,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity * 0.5})`
-            );
-            gradient.addColorStop(
-                0.4,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity})`
-            );
-            gradient.addColorStop(
-                0.6,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity})`
-            );
-            gradient.addColorStop(
-                0.9,
-                `hsla(${beam.hue}, 70%, 75%, ${pulsingOpacity * 0.5})`
-            );
-            gradient.addColorStop(1, `hsla(${beam.hue}, 70%, 75%, 0)`);
-
-            ctx.fillStyle = gradient;
-            ctx.fillRect(-beam.width / 2, 0, beam.width, beam.length);
+            ctx.translate(b.x, b.y);
+            ctx.rotate((b.angle * Math.PI) / 180);
+            const pulsingOpacity = b.opacity * (0.8 + Math.sin(b.pulse) * 0.2) * (opacityMap[intensity] || 1);
+            const g = ctx.createLinearGradient(0, 0, 0, b.length);
+            g.addColorStop(0, `hsla(${b.hue},70%,75%,0)`);
+            g.addColorStop(0.1, `hsla(${b.hue},70%,75%,${pulsingOpacity * 0.5})`);
+            g.addColorStop(0.4, `hsla(${b.hue},70%,75%,${pulsingOpacity})`);
+            g.addColorStop(0.6, `hsla(${b.hue},70%,75%,${pulsingOpacity})`);
+            g.addColorStop(0.9, `hsla(${b.hue},70%,75%,${pulsingOpacity * 0.5})`);
+            g.addColorStop(1, `hsla(${b.hue},70%,75%,0)`);
+            ctx.fillStyle = g;
+            ctx.fillRect(-b.width / 2, 0, b.width, b.length);
             ctx.restore();
         }
 
-        function animate(currentTime) {
-            if (!canvas || !ctx) return;
-
-            // Optimización: Limitar FPS en móviles para mejor rendimiento
-            const targetFPS = isMobileDevice() ? 30 : 60;
-            const frameInterval = 1000 / targetFPS;
-            
-            if (currentTime - lastFrameTimeRef.current < frameInterval) {
-                animationFrameRef.current = requestAnimationFrame(animate);
+        function animate(time) {
+            const target = isMobileDevice() ? 30 : 60;
+            const intv = 1000 / target;
+            if (time - lastRef.current < intv) {
+                animationRef.current = requestAnimationFrame(animate);
                 return;
             }
-            
-            lastFrameTimeRef.current = currentTime;
+            lastRef.current = time;
 
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Reducir blur en móviles para mejor rendimiento
-            ctx.filter = isMobileDevice() ? "blur(20px)" : "blur(35px)";
+            ctx.filter = `blur(${Math.max(12, Math.min((width || w) / 40, 40))}px)`;
 
-            const totalBeams = beamsRef.current.length;
-            beamsRef.current.forEach((beam, index) => {
-                // Movimiento más suave en móviles
-                const speedMultiplier = isMobileDevice() ? 0.8 : 1;
-                beam.y -= beam.speed * speedMultiplier;
-                beam.pulse += beam.pulseSpeed;
-
-                if (beam.y + beam.length < -100) {
-                    resetBeam(beam, index, totalBeams);
+            const total = beamsRef.current.length;
+            beamsRef.current.forEach((b, idx) => {
+                b.y -= b.speed * Math.max(0.7, Math.min((height || h) / 900, 1.2));
+                b.pulse += b.pulseSpeed;
+                if (b.y + b.length < -100) {
+                    b.y = h + 100;
+                    b.x = (idx % 3) * (w / 3) + w / 6 + (Math.random() - 0.5) * (w / 6);
+                    b.width = 80 + Math.random() * 120;
+                    b.speed = 0.5 + Math.random() * 0.6;
+                    b.hue = 180 + (idx * 40) / total;
+                    b.opacity = 0.25 + Math.random() * 0.15;
                 }
-
-                drawBeam(ctx, beam);
+                drawBeam(b);
             });
 
-            animationFrameRef.current = requestAnimationFrame(animate);
+            animationRef.current = requestAnimationFrame(animate);
         }
 
-        // Inicializar con timestamp
-        const startAnimation = (timestamp) => {
-            lastFrameTimeRef.current = timestamp;
-            animate(timestamp);
-        };
-        
-        animationFrameRef.current = requestAnimationFrame(startAnimation);
+        animationRef.current = requestAnimationFrame(animate);
 
-        // Manejar visibilidad para pausar/reanudar animación en móviles
-        const handleVisibilityChange = () => {
+        function onVisibility() {
             if (document.hidden) {
-                if (animationFrameRef.current) {
-                    cancelAnimationFrame(animationFrameRef.current);
-                }
+                if (animationRef.current) cancelAnimationFrame(animationRef.current);
             } else {
-                animationFrameRef.current = requestAnimationFrame(startAnimation);
+                animationRef.current = requestAnimationFrame(animate);
             }
-        };
+        }
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('visibilitychange', onVisibility);
 
         return () => {
-            window.removeEventListener("resize", updateCanvasSize);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
+            window.removeEventListener('resize', updateCanvasSize);
+            document.removeEventListener('visibilitychange', onVisibility);
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
         };
-    }, [intensity]);
+    }, [width, height, intensity]);
 
     return (
-        <div className={`relative w-full overflow-hidden ${className}`}
-             style={{ 
-                 background: 'linear-gradient(135deg, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)',
-                 minHeight: '100vh',
-                 position: 'fixed',
-                 top: 0,
-                 left: 0,
-                 right: 0,
-                 bottom: 0,
-                 zIndex: 1
-             }}>
-            <canvas
-                ref={canvasRef}
-                className="absolute inset-0"
-                style={{ filter: "blur(15px)" }}
-            />
-
-            <div 
-                className="absolute inset-0"
+        <>
+            <div
+                className={`relative w-full overflow-hidden ${className}`}
                 style={{
-                    background: 'rgba(135, 206, 235, 0.1)',
-                    backdropFilter: "blur(50px)",
+                    background: 'linear-gradient(135deg, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)',
+                    minHeight: '100vh',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 0,
+                    pointerEvents: 'none'
                 }}
-            />
+            >
+                <canvas ref={canvasRef} className="absolute inset-0" style={{ filter: 'blur(15px)' }} />
+                <div className="absolute inset-0" style={{ background: 'rgba(135, 206, 235, 0.1)', backdropFilter: 'blur(50px)' }} />
+            </div>
 
-            <div className="relative w-full h-full" style={{ zIndex: 10 }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
                 {children}
             </div>
-        </div>
+        </>
     );
 }

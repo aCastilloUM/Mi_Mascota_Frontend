@@ -1,0 +1,205 @@
+.bottom-navbar {
+  width: auto;
+  pointer-events: auto;
+}
+
+.bottom-navbar--overlay {
+  border-radius: 0;
+}
+
+.bottom-navbar--overlay.surface-animated--navbar {
+  border-radius: 0;
+  padding: clamp(10px, 3vw, 16px) clamp(16px, 6vw, 28px) calc(env(safe-area-inset-bottom, 0px) + clamp(12px, 4vw, 22px));
+}
+
+.bottom-navbar__list {
+  display: flex;
+  justify-content: center; /* center the group */
+  align-items: center;
+  gap: clamp(18px, 6vw, 40px);
+  width: 100%;
+  padding-inline: 0;
+  box-sizing: border-box;
+  margin: 0 auto;
+  list-style: none;
+}
+
+/* Responsive por JS: elimina media queries, usa clamp para max-width */
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0; /* anchor to the left and let the inner list center via max-width + margin:auto */
+  transform: none;
+  width: 100%;
+  /* Force navbar to top-most layer to remain visible in problematic Safari/WebView environments */
+  z-index: 2147483647 !important;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Ensure navbar stays above overlays and virtual keyboard side-effects when inputs are focused.
+   Use :focus-within on html/body so that any focused input inside the document keeps the navbar visible.
+   Also promote to its own compositor layer to avoid being repainted behind other elements. */
+html:focus-within .bottom-navbar,
+body:focus-within .bottom-navbar {
+  z-index: 2147483646; /* extremely high but below potential system overlays */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  pointer-events: auto; /* ensure navbar remains interactive */
+}
+
+/* Some Safari/WebView variants don't reliably apply :focus-within on html/body.
+   Use a JS-added class on the root as a robust fallback. */
+.has-input-focus .bottom-navbar,
+html.has-input-focus .bottom-navbar,
+body.has-input-focus .bottom-navbar {
+  z-index: 2147483646;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  pointer-events: auto;
+}
+
+/* Defensive: if some overlay uses a very large z-index, make sure navbar still displays by
+   forcing a local stacking context and position. This helps in Safari when the viewport resizes. */
+.bottom-navbar {
+  contain: paint; /* limit repaint scope */
+}
+
+/* normalize any lateral padding applied by surface-animated variants so centering is consistent */
+.bottom-navbar.surface-animated--navbar,
+.bottom-navbar--overlay.surface-animated--navbar {
+  padding-left: 0;
+  padding-right: 0;
+}
+.bottom-navbar__list {
+  /* keep responsive cap but flex handles spacing */
+  max-width: clamp(320px, 60vw, 680px);
+  margin: 0 auto;
+  position: static;
+  left: unset;
+  transform: unset;
+}
+
+.bottom-navbar__item {
+  display: flex;
+  justify-content: center;
+  flex: 0 0 clamp(72px, 14vw, 84px); /* fixed responsive slot width for symmetry */
+  width: auto;
+  padding-inline: 0;
+}
+
+.bottom-navbar__link {
+  display: inline-flex; /* link fills the slot */
+  position: relative; /* for bubble pseudo-element */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%; /* fill the slot provided by .bottom-navbar__item */
+  padding: 14px 0 10px; /* top padding for bubble */
+  border-radius: 16px;
+  color: rgba(248, 250, 252, 0.7);
+  font-size: 12px; /* Removed erroneous 'f' */
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: transform 0.22s ease, color 0.22s ease, background-color 0.22s ease;
+  /* ensure tappable area for accessibility */
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+/* Remove native tap highlight and prevent background artifacts on touch */
+.bottom-navbar__link,
+.bottom-navbar__link * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Ensure no background/outline appears while tapping */
+.bottom-navbar__link:active,
+.bottom-navbar__link:focus:not(:focus-visible) {
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* On touch-only devices hide focus-visible ring (keyboard users still see it) */
+@media (hover: none) {
+  .bottom-navbar__link:focus-visible {
+    outline: none;
+  }
+}
+
+/* Circular bubble behind the icon to make uniform border/shape for all icons */
+.bottom-navbar__link::before {
+  content: "";
+  position: absolute;
+  top: 8px; /* slightly inside the top padding */
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(64px, 14vw, 76px); /* uniform, slightly larger bubble */
+  height: clamp(64px, 14vw, 76px);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.18);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.28);
+  z-index: 0;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.bottom-navbar__link .bottom-navbar__icon {
+  position: relative;
+  z-index: 1; /* put svg above the bubble */
+}
+
+.bottom-navbar__link--active::before {
+  background: rgba(15, 23, 42, 0.32);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.bottom-navbar__link--active {
+  color: #f8fafc;
+  /* keep visual active feedback only on the circular bubble (::before) */
+  transform: translateY(-2px);
+}
+
+/* small fixed icon size removed; final responsive size defined later */
+
+.bottom-navbar__label {
+  white-space: nowrap;
+}
+
+/* Responsive por JS: elimina media queries, usa clamp para iconos y font-size */
+.bottom-navbar__label {
+  white-space: nowrap;
+  text-align: center; /* ensure label centers under/next to icon */
+}
+
+/* Default: vertical layout for small screens (icon above label) to keep icons centered visually */
+.bottom-navbar__link {
+  flex-direction: column;
+  gap: 4px;
+  font-size: clamp(12px, 2vw, 13px);
+  padding: 10px 0;
+}
+
+/* On wider viewports switch to horizontal layout */
+@media (min-width: 520px) {
+  .bottom-navbar__link {
+    flex-direction: row;
+    gap: clamp(4px, 1vw, 8px);
+    font-size: clamp(12px, 2vw, 13px);
+    padding: 10px clamp(6px, 3vw, 12px); /* increase lateral padding for more balanced spacing */
+  }
+}
+.bottom-navbar__icon {
+  width: clamp(30px, 6vw, 40px); /* larger icons to match bigger bubble */
+  height: clamp(30px, 6vw, 40px);
+  display: block;
+  margin: 0 auto; /* ensure icon centers inside the flex container */
+}

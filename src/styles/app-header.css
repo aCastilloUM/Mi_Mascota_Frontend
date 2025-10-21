@@ -1,0 +1,143 @@
+:root {
+  /* Base header height (does not include safe-area inset) - lowered per request */
+  /* slightly reduced so the header is a bit smaller across breakpoints */
+  --app-header-height-base: clamp(120px, 10vh, 120px);
+  /* Compatibility alias used across the codebase */
+  --app-header-height: var(--app-header-height-base);
+}
+
+/* Make header sizing deterministic and the same across pages.
+   The visual height includes the top safe-area inset so the header appears consistent
+   on devices with and without notches. We keep box-sizing:border-box so padding
+   is included in the declared height. */
+.app-header {
+  width: 100%;
+  color: #f8fafc;
+  box-sizing: border-box;
+  /* final visual height = base + safe-area-top */
+  height: calc(var(--app-header-height-base) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  /* ensure no extra bottom padding on the header element */
+  padding-bottom: 0;
+  display: block;
+}
+
+.app-header--overlay {
+  border-radius: 0;
+}
+
+/* Surface-animated header uses the same visual height so switching between
+   header variants doesn't change the occupied vertical space. */
+.surface-animated--header,
+.app-header--overlay.surface-animated--header {
+  /* Make header rectangular (no rounded corners) per request */
+  border-radius: 0;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.28);
+  box-sizing: border-box;
+  height: calc(var(--app-header-height-base) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  /* remove bottom padding so the surface sits flush */
+  padding-left: clamp(20px, 6vw, 32px);
+  padding-right: clamp(20px, 6vw, 32px);
+  padding-bottom: clamp(0px, 0vw, 0px);
+  display: block;
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
+} 
+
+.surface-animated--header .surface-animated__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center; /* vertical center within the header slot */
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Text block inside the header */
+.app-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto; /* allow text area to shrink/grow next to action slot */
+  /* small extra space to prevent descenders from being clipped when title wraps */
+  padding-bottom: 8px;
+}
+
+.app-header__eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.82);
+}
+
+.app-header__title {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.18; /* increased to avoid clipping of descending glyphs (eg. g, y, p) */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* allow up to three lines now */
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.app-header__subtitle {
+  margin: 0;
+  font-size: clamp(14px, 2vw, 15px);
+  color: rgba(241, 245, 249, 0.85);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.app-header__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
+.app-header__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(248, 250, 252, 0.4);
+  background: rgba(15, 23, 42, 0.28);
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.app-header__reset:hover,
+.app-header__reset:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(15, 23, 42, 0.45);
+  border-color: rgba(248, 250, 252, 0.6);
+}
+
+.app-header__reset:focus-visible {
+  outline: 2px solid rgba(148, 163, 184, 0.4);
+  outline-offset: 2px;
+}
+
+

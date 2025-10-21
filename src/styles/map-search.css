@@ -1,0 +1,181 @@
+/* Map search overlay: white input on transparent surface */
+.map-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px; /* slightly tighter */
+  /* blurred translucent background so the map is softly difuminado under the bar */
+  background: rgba(255,255,255,0.04);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 6px; /* slimmer bar */
+  border-radius: 12px;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  box-shadow: 0 10px 24px rgba(2,6,23,0.20);
+  /* Fixed centered position to avoid any page scroll/panning moving the bar */
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top, 8px) + 22px); /* slightly lower */
+  z-index: 1000; /* below navbar (which is forced higher), above map content */
+  pointer-events: auto;
+  touch-action: none; /* prevent page panning when touching the wrapper */
+  overscroll-behavior: none; /* prevent scroll chaining */
+  box-sizing: border-box;
+  /* Conservative fixed cap to avoid over-expanding on wide viewports */
+  width: min(84vw, 420px);
+  max-width: 420px;
+  padding: 6px 8px; /* slightly wider lateral padding to balance smaller width */
+  overflow: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-search__input {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  /* Force the input to share the frosted diffused background (override UA styles) */
+  background: rgba(255,255,255,0.04) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  border: none !important;
+  color: #081426 !important; /* slightly darker for contrast over the frosted bar */
+  padding: 8px 10px; /* reduce vertical padding */
+  border-radius: 8px;
+  min-height: 40px; /* reasonable touch target */
+  /* remove inner blur/shadow so text isn't affected by multiple blurs */
+  box-shadow: none !important;
+  background-clip: padding-box;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+  /* make input flexible so it fits the wrapper without forcing width */
+  flex: 1 1 auto;
+  min-width: 0; /* allow flex children to shrink properly */
+  width: 100%;
+  /* avoid iOS zoom-on-focus by ensuring at least 16px font size */
+  font-size: clamp(16px, 2.4vw, 18px);
+  outline: none;
+  /* allow input to be interactive even if the wrapper has touch-action:none */
+  touch-action: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.map-search__input::placeholder {
+  color: rgba(8,20,38,0.5); /* softer placeholder over frosted background */
+}
+
+/* Fallback pseudo-element to simulate frosted glass when backdrop-filter is not applied */
+.map-search::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  filter: blur(6px);
+  z-index: 0;
+}
+
+.map-search__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  /* ensure button is on the right side (default order) */
+  order: 0;
+  margin-right: 0;
+  margin-left: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.map-search__icon {
+  width: 20px;
+  height: 20px;
+  color: #000000; /* black icon */
+}
+
+/* Positioning helpers: ensure top overlay centers content */
+.home-overlay-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* slightly lower but thinner: smaller offset */
+  padding-top: clamp(14px, 6vh, 48px);
+}
+
+.map-search__field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.map-search__history {
+  margin: 8px 0 0 0;
+  padding: 6px 6px;
+  list-style: none;
+  background: rgba(255,255,255,0.96);
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(2,6,23,0.08);
+  max-width: 100%;
+  width: 100%;
+}
+
+.map-search__history-item button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #0b1220;
+}
+
+.map-search__history-item button:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+@media(min-width: 1200px) {
+  .home-overlay-center { padding-top: 6vh; }
+}
+
+/* Slight focus state */
+.map-search__input:focus {
+  /* subtle lift and stronger shadow while keeping blurred background */
+  box-shadow: 0 6px 18px rgba(2,6,23,0.18);
+  outline: none;
+}
+
+/* Focus-visible ring similar to the Tailwind classes provided */
+.map-search__input:focus-visible {
+  outline: none;
+  /* soft ring without inner blur */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 0 0 4px rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.12);
+}
+
+.map-search__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-search__btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 420px) {
+  .map-search__input { min-width: 140px; }
+}

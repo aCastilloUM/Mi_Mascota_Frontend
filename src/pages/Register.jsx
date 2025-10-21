@@ -19,7 +19,7 @@ import zxcvbn from "zxcvbn";
 // Esquema de validación
 const schema = z
   .object({
-    // Paso 1: Información básica
+    // Paso 1: Información básicas
     name: z.string().trim().min(1, "El nombre es requerido"),
     secondName: z.string().trim().min(1, "El apellido es requerido"),
     email: z
@@ -87,7 +87,7 @@ const steps = [1, 2, 3];
 const styles = {
   input: {
     width: '100%',
-    height: '20px',
+    height: '32px',
     padding: '8px 12px',
     border: '1.5px solid #E2E8F0',
     borderRadius: '8px',
@@ -160,7 +160,7 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-
+  
   const {
     register,
     handleSubmit,
@@ -214,6 +214,7 @@ export default function Register() {
       }, 150);
     }
   };
+ 
 
   // Función para ir al paso anterior
   const prevStep = () => {
@@ -610,8 +611,8 @@ export default function Register() {
                       {...register("name")}
                       placeholder="Tu nombre"
                       style={{
-                        width: '80%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.name && <p style={styles.error}>{errors.name.message}</p>}
@@ -622,8 +623,8 @@ export default function Register() {
                       {...register("secondName")}
                       placeholder="Tu apellido"
                       style={{
-                        width: '80%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.secondName && <p style={styles.error}>{errors.secondName.message}</p>}
@@ -638,8 +639,8 @@ export default function Register() {
                     {...register("email")}
                     placeholder="tu@email.com"
                     style={{
-                        width: '90%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                   />
                   {errors.email && <p style={styles.error}>{errors.email.message}</p>}
@@ -654,8 +655,8 @@ export default function Register() {
                       {...register("password")}
                       placeholder="Tu contraseña"
                       style={{
-                        width: '80%',
-                        height: '20px',
+                        width: '100%',
+                        height: '32px',
                         paddingRight: '40px'
                       }}
                     />
@@ -715,8 +716,8 @@ export default function Register() {
                       {...register("confirmPassword")}
                       placeholder="Repetí tu contraseña"
                       style={{
-                        width: '80%',
-                        height: '20px',
+                        width: '100%',
+                        height: '32px',
                         paddingRight: '40px'
                       }}
                     />
@@ -1238,7 +1239,7 @@ export default function Register() {
       </AuthCenterWrap>
       
       {/* Estilos CSS para animaciones y efectos hover */}
-      <style jsx>{`
+  <style>{`
         button:hover:not(:disabled) {
           transform: translateY(-1px) !important;
         }

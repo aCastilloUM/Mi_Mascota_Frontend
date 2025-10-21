@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Breakpoints estándar para la aplicación
-const BREAKPOINTS = {
-  mobile: 768,
-  tablet: 1024,
-  desktop: 1280
-};
-
+// Hook que devuelve el tamaño exacto de pantalla y helpers para porcentajes
 export const useResponsive = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
@@ -24,39 +18,18 @@ export const useResponsive = () => {
     };
 
     window.addEventListener('resize', handleResize);
-    
-    // Llamar una vez para setear el tamaño inicial
-    handleResize();
-
+    handleResize(); // Setea el tamaño inicial
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isMobile = windowSize.width < BREAKPOINTS.mobile;
-  const isTablet = windowSize.width >= BREAKPOINTS.mobile && windowSize.width < BREAKPOINTS.tablet;
-  const isDesktop = windowSize.width >= BREAKPOINTS.tablet;
-  const isSmallMobile = windowSize.width < 375;
-  const isLargeMobile = windowSize.width >= 375 && windowSize.width < BREAKPOINTS.mobile;
+  // Helpers para calcular porcentajes
+  const widthPercent = (percent) => (windowSize.width * percent) / 100;
+  const heightPercent = (percent) => (windowSize.height * percent) / 100;
 
   return {
-    width: windowSize.width,
-    height: windowSize.height,
-    isMobile,
-    isTablet,
-    isDesktop,
-    isSmallMobile,
-    isLargeMobile,
-    breakpoints: BREAKPOINTS
+    width: windowSize.width, // ancho exacto en px
+    height: windowSize.height, // alto exacto en px
+    widthPercent, // función para obtener % del ancho
+    heightPercent // función para obtener % del alto
   };
-};
-
-// Helper para obtener estilos responsive
-export const getResponsiveStyles = (breakpoint) => {
-  const { isMobile, isTablet, isDesktop, isSmallMobile } = useResponsive();
-  
-  if (breakpoint === 'mobile' && isMobile) return true;
-  if (breakpoint === 'tablet' && isTablet) return true;
-  if (breakpoint === 'desktop' && isDesktop) return true;
-  if (breakpoint === 'small-mobile' && isSmallMobile) return true;
-  
-  return false;
 };
