@@ -11,6 +11,8 @@ import Home from "./pages/Home.jsx";
 import Services from "./pages/Services.jsx";
 import Favorites from "./pages/Favorites.jsx";
 import Profile from "./pages/Profile.jsx";
+import Enable2FA from "./pages/Enable2FA.jsx";
+import Verify2FASetup from "./pages/Verify2FASetup.jsx";
 
 function AppEntry() {
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/email-verification-pending" element={<EmailVerificationPending />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/2fa/enable" element={<Enable2FA />} />
+          <Route path="/2fa/verify-setup" element={<Verify2FASetup />} />
           <Route path="/home" element={<Home />} />
           <Route path="/servicios" element={<Services />} />
           <Route path="/favoritos" element={<Favorites />} />

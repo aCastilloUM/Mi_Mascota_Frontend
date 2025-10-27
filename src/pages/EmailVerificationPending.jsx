@@ -8,7 +8,7 @@ import { AuthCard, AuthCardContent } from "../components/ui/AuthCard";
 import { Logo, LogoWrap } from "../components/ui/Logo";
 import { useResponsiveText } from "../hooks/useResponsiveText";
 import { useResponsive } from "../hooks/useResponsive";
-import { resendVerificationEmail } from "../lib/api";
+import { resendVerificationEmail, verifyEmail } from "../lib/api";
 
 // Componente de animación tipo morph loading adaptado de tsx a jsx
 const UniqueLoading = ({ size = "1g", className = "" }) => {
@@ -45,8 +45,9 @@ export default function EmailVerificationPending() {
   const [countdown, setCountdown] = useState(60); // 60 segundos para reenviar
   const [canResend, setCanResend] = useState(false);
 
-  // Obtener email del state del registro (pasado desde Register.jsx)
+  // Obtener email y token del state del registro (pasado desde Register.jsx)
   const userEmail = location.state?.email || "tu-email@ejemplo.com";
+  const devToken = location.state?.token || null;
 
   // Countdown timer para reenvío
   useEffect(() => {
@@ -95,6 +96,36 @@ export default function EmailVerificationPending() {
     }
   };
 
+  // Dev helper: auto-verify only when DEV and an explicit dev flag is enabled
+  useEffect(() => {
+    let mounted = true;
+    const autoVerify = async () => {
+      if (!devToken) return;
+      // Only auto-verify in development builds and when explicit flag is enabled
+      if (!import.meta.env.DEV) return;
+      const showDev = import.meta.env.VITE_SHOW_DEV_VERIFICATION_TOKEN === 'true';
+      if (!showDev) return;
+
+      try {
+        setLoading(true);
+        await verifyEmail(devToken);
+        if (!mounted) return;
+        alert("✅ Email verificado automáticamente (modo DEV). Ahora podés iniciar sesión.");
+        // Redirigir a login
+        window.location.href = '/login';
+      } catch (err) {
+        console.error('Auto verify failed', err);
+        // If auto verify fails, just keep the page and let the user click the button
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    autoVerify();
+
+    return () => { mounted = false; };
+  }, [devToken]);
+
   const handleChangeEmail = () => {
     // Volver al registro para cambiar email
     navigate("/register", { replace: true });
@@ -129,6 +160,21 @@ export default function EmailVerificationPending() {
             <div style={styles.emailDisplay}>
               <strong>{userEmail}</strong>
             </div>
+
+            {devToken && import.meta.env.DEV && import.meta.env.VITE_SHOW_DEV_VERIFICATION_TOKEN === 'true' ? (
+              <div style={{ margin: '12px 0', padding: 12, background: '#fff7ed', borderRadius: 8 }}>
+                <p style={{ margin: 0, fontSize: 13 }}>Token de verificación (DEV):</p>
+                <pre style={{ margin: '6px 0 8px 0', background: '#fff', padding: 8, borderRadius: 6, overflowX: 'auto' }}>{devToken}</pre>
+                <AnimatedButton onClick={async () => {
+                  setLoading(true);
+                  try { await verifyEmail(devToken); alert('✅ Verificado (modo DEV)'); window.location.href='/login'; }
+                  catch (e) { alert('Error al verificar: ' + (e?.response?.data?.detail || e?.message || '')); }
+                  finally { setLoading(false); }
+                }}>
+                  Verificar ahora (DEV)
+                </AnimatedButton>
+              </div>
+            ) : null}
 
             <p style={{ ...styles.instruction, fontSize: body }}>
               Haz click en el enlace del email para verificar tu cuenta y continuar.

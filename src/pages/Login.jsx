@@ -52,6 +52,7 @@ export default function Login() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isValid, touchedFields },
   } = useForm({
     mode: "onChange",
@@ -61,6 +62,22 @@ export default function Login() {
 
   // ELIMINÉ EL useEffect PROBLEMÁTICO QUE CAUSABA EL PARPADEO
 
+  // Si la app redirigió al login por un fallo de refresh, mostrar el mensaje
+  // que guardamos en sessionStorage y limpiar los campos para permitir reingresar.
+  React.useEffect(() => {
+    try {
+      const msg = sessionStorage.getItem('auth:error');
+      if (msg) {
+        setErr(msg);
+        // limpiar campos del formulario
+        reset({ email: '', password: '' });
+        sessionStorage.removeItem('auth:error');
+      }
+    } catch (e) {
+      // noop
+    }
+  }, [reset]);
+
   const onSubmit = async (data) => {
     if (loading || router.isTransitioning) return;
     
@@ -68,6 +85,7 @@ export default function Login() {
     setLoading(true);
     try {
       const result = await login({ email: data.email.trim(), password: data.password });
+  console.debug('[Login] api.login result ->', result);
       
       // Verificar si requiere 2FA
       if (result.requires2FA) {
@@ -86,7 +104,12 @@ export default function Login() {
       // Manejo específico de errores del backend
       if (e.response?.status === 401) {
         console.log("[Login] Setting 401 error message"); // Debug log
-        setErr("❌ Email o contraseña incorrectos");
+        // Mostrar mensaje claro y recargar la página para resetear el estado
+        setErr("email o contraseña incorrectos");
+        // Recargar después de un pequeño retardo para que el usuario vea el mensaje
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
       } else if (e.response?.status === 400) {
         setErr("❌ Datos inválidos. Por favor, verificá tu email y contraseña");
       } else if (e.response?.status >= 500) {
@@ -101,10 +124,12 @@ export default function Login() {
     }
   };
 
-  // Función para manejar el código 2FA
-  const onSubmit2FA = async (code) => {
+  // Función para manejar el código 2FA (usando el estado twoFactorCode al enviar el form)
+  const onSubmit2FA = async (e) => {
+    e.preventDefault();
+    const code = (twoFactorCode || "").trim();
     if (twoFactorLoading || !code || code.length !== 6) return;
-    
+
     setErr("");
     setTwoFactorLoading(true);
     try {
@@ -114,7 +139,7 @@ export default function Login() {
       }
     } catch (e) {
       console.error("[Login 2FA] Error:", e);
-      
+
       if (e.response?.status === 401) {
         setErr("❌ Código 2FA incorrecto o expirado");
       } else if (e.response?.status === 400) {

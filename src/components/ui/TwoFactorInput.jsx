@@ -32,27 +32,36 @@ export function TwoFactorInput({
   }, [autoFocus]);
 
   const handleChange = (index, digit) => {
-    // Solo permitir números
+    // Permitir solo números simples (un dígito). Si es cadena vacía, borrar el dígito.
+    if (digit === '') {
+      const newDigits = [...digits];
+      newDigits[index] = '';
+      setDigits(newDigits);
+      onChange?.(newDigits.join('').trim());
+      return;
+    }
+
     if (digit && !/^\d$/.test(digit)) return;
-    // ...existing code...
-    // Responsive: usar tamaño de pantalla
-    const { widthPercent, heightPercent } = require('../../hooks/useResponsive').useResponsive();
-    const inputStyle = {
-      width: `${Math.max(28, Math.min(widthPercent(8), 48))}px`,
-      height: `${Math.max(36, Math.min(heightPercent(7), 54))}px`,
-      fontSize: `${Math.max(18, Math.min(widthPercent(4.2), 28))}px`,
-      textAlign: 'center',
-      borderRadius: `${Math.max(6, Math.min(widthPercent(2.2), 12))}px`,
-      border: error ? '2px solid #EF4444' : '2px solid #3B82F6',
-      background: '#fff',
-      margin: `0 ${Math.max(2, Math.min(widthPercent(1.2), 8))}px`,
-      boxShadow: error ? '0 0 0 2px #F87171' : '0 2px 8px rgba(59,130,246,0.08)',
-      outline: 'none',
-      transition: 'all 0.18s',
-      fontWeight: '600',
-      caretColor: '#3B82F6',
-      letterSpacing: '2px',
-    };
+
+    // Guardar el dígito y avanzar el foco
+    const newDigits = [...digits];
+    newDigits[index] = digit;
+    setDigits(newDigits);
+
+    // Notificar al padre del nuevo valor completo
+    const joined = newDigits.join('').replace(/\s/g, '');
+    onChange?.(joined);
+
+    // Avanzar foco al siguiente input, o completar
+    if (index < 5) {
+      // Pequeño timeout para asegurar que el DOM haya aplicado el valor
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+        inputRefs.current[index + 1]?.select?.();
+      }, 0);
+    } else {
+      if (joined.length === 6) onComplete?.(joined);
+    }
   };
 
   const handleKeyDown = (index, e) => {

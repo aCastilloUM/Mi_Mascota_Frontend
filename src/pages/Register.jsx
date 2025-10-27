@@ -296,25 +296,14 @@ export default function Register() {
         },
       };
 
-      const { user } = await authRegister(authPayload);
-      
-      // 1.5. Hacer login para obtener el token
-      const { accessToken } = await login(data.email.trim().toLowerCase(), data.password);
-      
-      // 2. Si hay foto de perfil, subirla (el perfil ya fue creado por authRegister)
-      if (profilePhoto && user?.id) {
-        try {
-          await uploadProfilePhoto(profilePhoto, user.id);
-        } catch (photoError) {
-          // No fallar el registro por la foto, solo mostrar advertencia
-        }
-      }
+      const registerResp = await authRegister(authPayload);
 
-      // 3. Mostrar éxito y navegar al login
-      setSuccess(true);
-      setTimeout(() => {
-        router.toLogin('register');
-      }, 200);
+      // Mostrar la pantalla de verificación de email con el email registrado.
+      // En desarrollo el backend puede devolver el verification_token, en cuyo caso la página
+      // lo mostrará (solo si EXPOSE_DEV_VERIFICATION_TOKEN está activo). En producción normalmente
+      // el token no se retorna por seguridad, por eso siempre navegamos a la pantalla de espera.
+      router.navigateWithoutAnimation('/email-verification-pending', { state: { email: data.email.trim().toLowerCase(), token: registerResp?.verification_token || null } });
+      return; // no continuar con login automático ni subida de foto
     } catch (e) {
       // Manejo específico de errores del backend
       if (e.response?.status === 409) {
@@ -769,8 +758,12 @@ export default function Register() {
                     <label style={styles.label}>Tipo de documento</label>
                     <AnimatedSelect
                       {...register("documentType")}
-                      
-                      style={styles.select}
+
+                      style={{
+                        ...styles.select,
+                        width: '100%',
+                        height: '32px'
+                      }}
                     >
                       <option value="CI">Cédula</option>
                       <option value="Pasaporte">Pasaporte</option>
@@ -783,8 +776,8 @@ export default function Register() {
                       {...register("document")}
                       placeholder="12345678"
                       style={{
-                        width: '80%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.document && <p style={styles.error}>{errors.document.message}</p>}
@@ -798,8 +791,8 @@ export default function Register() {
                     type="date"
                     {...register("birthDate")}
                     style={{
-                        width: '90%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                   />
                   {errors.birthDate && <p style={styles.error}>{errors.birthDate.message}</p>}
@@ -818,8 +811,8 @@ export default function Register() {
                       {...register("department")}
                       placeholder="Montevideo"
                       style={{
-                        width: '80%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.department && <p style={styles.error}>{errors.department.message}</p>}
@@ -830,8 +823,8 @@ export default function Register() {
                       {...register("city")}
                       placeholder="Ciudad"
                       style={{
-                        width: '80%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.city && <p style={styles.error}>{errors.city.message}</p>}
@@ -850,8 +843,8 @@ export default function Register() {
                       {...register("postalCode")}
                       placeholder="11000"
                       style={{
-                        width: '70%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.postalCode && <p style={styles.error}>{errors.postalCode.message}</p>}
@@ -862,8 +855,8 @@ export default function Register() {
                       {...register("street")}
                       placeholder="18 de Julio"
                       style={{
-                        width: '70%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px '
                       }}
                     />
                     {errors.street && <p style={styles.error}>{errors.street.message}</p>}
@@ -874,8 +867,8 @@ export default function Register() {
                       {...register("number")}
                       placeholder="1234"
                       style={{
-                        width: '70%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                     />
                     {errors.number && <p style={styles.error}>{errors.number.message}</p>}
@@ -889,8 +882,8 @@ export default function Register() {
                     {...register("apartment")}
                     placeholder="Apt 5B"
                     style={{
-                        width: '90%',
-                        height: '20px'
+                        width: '100%',
+                        height: '32px'
                       }}
                   />
                 </div>

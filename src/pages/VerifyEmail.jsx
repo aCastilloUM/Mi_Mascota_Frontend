@@ -63,10 +63,26 @@ export default function VerifyEmail() {
   const [animationPhase, setAnimationPhase] = useState("enter"); // enter, verify, result
 
   const token = searchParams.get("token");
+  const verifiedParam = searchParams.get("verified");
+  const messageParam = searchParams.get("message");
 
   // Verificar email al cargar componente
   useEffect(() => {
     if (!token) {
+      // Si el frontend fue redirigido por el backend después de verificar,
+      // aceptamos el flag `verified` y mostramos resultado sin llamar al API.
+      if (verifiedParam !== null) {
+        if (verifiedParam === "1" || verifiedParam === "true") {
+          setStatus("success");
+          setMessage(messageParam || "¡Email verificado exitosamente!");
+        } else {
+          setStatus("error");
+          setMessage(decodeURIComponent(messageParam || "Error al verificar el email."));
+        }
+        setAnimationPhase("result");
+        return;
+      }
+
       setStatus("error");
       setMessage("Token de verificación faltante");
       setAnimationPhase("result");

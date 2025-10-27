@@ -86,10 +86,13 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (userData) => {
-    // Usar la función de registro de api.js que ya maneja el token
-    const { accessToken, user } = await apiRegister(userData);
-    // El token ya se setea automáticamente en apiRegister
-    return { accessToken, user };
+    // Usar la función de registro de api.js que ya maneja el token.
+    // Devolver la respuesta completa (no destructurar) para permitir que
+    // componentes como `Register.jsx` lean campos de desarrollo como
+    // `verification_token` y muestren la pantalla de verificación en lugar
+    // de intentar un login automático.
+    const data = await apiRegister(userData);
+    return data;
   };
 
   const logout = async () => {

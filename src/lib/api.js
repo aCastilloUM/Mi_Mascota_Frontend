@@ -69,10 +69,26 @@ api.interceptors.response.use(
           });
       }
 
-      const newAccess = await refreshing;
-      if (newAccess) {
-        original.headers.Authorization = `Bearer ${newAccess}`;
-        return api(original); // reintenta la petición original
+      try {
+        const newAccess = await refreshing;
+        if (newAccess) {
+          original.headers.Authorization = `Bearer ${newAccess}`;
+          return api(original); // reintenta la petición original
+        }
+      } catch (refreshErr) {
+        // El refresh falló (cookie inválida/expirada). Limpiar estado y forzar login.
+        try {
+          const msg = refreshErr?.response?.data?.detail?.message || refreshErr?.response?.data?.detail || refreshErr?.message || 'Sesión expirada';
+          sessionStorage.setItem('auth:error', String(msg));
+        } catch (e) {
+          /* noop */
+        }
+        setAccessToken(null);
+        // Redirigir al login para que el usuario ingrese credenciales nuevamente
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshErr);
       }
     }
 
@@ -98,11 +114,14 @@ export async function login(email, password) {
   });
   
   // Verificar si el login requiere 2FA
-  if (response.data.requires_2fa) {
+  const requires2fa = response.data.requires_2fa || response.data.requires2FA || false;
+  if (requires2fa) {
+    // Backend may return different names for the temporary session token
+    const tempToken = response.data.temp_token || response.data.temp_session_id || response.data.tempToken || response.data.tempSessionId || null;
     return {
       requires2FA: true,
-      tempToken: response.data.temp_token,
-      message: response.data.message || "Se requiere código 2FA"
+      tempToken,
+      message: response.data.message || response.data.detail || "Se requiere código 2FA"
     };
   }
   
@@ -125,18 +144,21 @@ export async function login(email, password) {
  * @returns {Promise<{accessToken: string, user: object}>}
  */
 export async function loginWith2FA(tempToken, code) {
-  const response = await api.post("/api/v1/auth/login/2fa", {
+  // Send both common field names to be compatible with backend variations
+  const payload = {
     temp_token: tempToken,
+    temp_session_id: tempToken,
     code: code.trim(),
-  });
+    token: code.trim(),
+  };
+
+  const response = await api.post("/api/v1/auth/login/2fa", payload);
+
+  const { access_token: accessToken, accessToken: altAccessToken, user } = response.data;
+  const finalAccess = accessToken || altAccessToken || null;
   
-  const { access_token: accessToken, user } = response.data;
-  
-  if (accessToken) {
-    setAccessToken(accessToken);
-  }
-  
-  return { accessToken, user };
+  if (finalAccess) setAccessToken(finalAccess);
+  return { accessToken: finalAccess, user };
 }
 
 /**
@@ -147,16 +169,17 @@ export async function loginWith2FA(tempToken, code) {
 export async function register(userData) {
   try {
     const response = await api.post("/api/v1/auth/register", userData);
-    
-    const { accessToken, user } = response.data;
-    
+
+    // Preserve the full backend response so dev-only fields (like verification_token)
+    // are not lost. If an access token is present, keep it in memory.
+    const data = response.data || {};
+
+    const accessToken = data.accessToken || data.access_token || null;
     if (accessToken) {
       setAccessToken(accessToken);
-    } else {
-      console.error("[api] No accessToken in response!");
     }
-    
-    return { accessToken, user };
+
+    return data;
   } catch (error) {
     throw error;
   }
@@ -293,12 +316,14 @@ export async function enable2FA() {
 
 /**
  * Verificar setup de 2FA - Paso 2: Confirmar con código TOTP
+ * @param {string} secret - Secret temporal que se generó en el paso de enable
  * @param {string} code - Código de 6 dígitos del authenticator
  * @returns {Promise<{message: string, backup_codes: string[]}>}
  */
-export async function verify2FASetup(code) {
+export async function verify2FASetup(secret, code) {
   const response = await api.post("/api/v1/2fa/verify-setup", {
-    code: code.trim(),
+    secret: secret,
+    token: (code || "").trim(),
   });
   return response.data;
 }
