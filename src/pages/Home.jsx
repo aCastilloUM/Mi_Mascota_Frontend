@@ -1,13 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 
 import BottomNavbar from "../components/BottomNavbar.jsx";
 import MapSearch from "../components/MapSearch.jsx";
+import VetLayer from "../components/VetLayer.jsx";
+import VetCard from "../components/VetCard.jsx";
 
 import "../styles/home-page.css";
 
 export default function Home() {
-  const defaultCenter = useMemo(() => [-34.6037, -58.3816], []);
+  // Montevideo, Uruguay as default center
+  const defaultCenter = useMemo(() => [-34.9011, -56.1645], []);
+  const [selectedVet, setSelectedVet] = useState(null);
 
   return (
     <div className="home-screen">
@@ -24,7 +28,16 @@ export default function Home() {
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {/* Layer that fetches and shows nearby veterinarians (Overpass / OSM or Google Places) */}
+        <VetLayer defaultCenter={defaultCenter} defaultRadius={7000} onSelect={(v) => setSelectedVet(v)} />
       </MapContainer>
+
+      {/* Floating card that shows selected veterinarian details */}
+      {selectedVet ? (
+        <div className="home-screen__vet-card-wrap">
+          <VetCard place={selectedVet} onClose={() => setSelectedVet(null)} />
+        </div>
+      ) : null}
 
       <div className="home-screen__overlay home-screen__overlay--top">
         <div className="home-screen__overlay-content home-overlay-center">

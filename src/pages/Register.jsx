@@ -298,6 +298,13 @@ export default function Register() {
 
       const registerResp = await authRegister(authPayload);
 
+      // Guardar el email en sessionStorage para que otras pantallas (verify) lo puedan mostrar
+      try {
+        sessionStorage.setItem('mimascota:register_email', data.email.trim().toLowerCase());
+      } catch (e) {
+        // noop
+      }
+
       // Mostrar la pantalla de verificación de email con el email registrado.
       // En desarrollo el backend puede devolver el verification_token, en cuyo caso la página
       // lo mostrará (solo si EXPOSE_DEV_VERIFICATION_TOKEN está activo). En producción normalmente

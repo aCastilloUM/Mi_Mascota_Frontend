@@ -32,3 +32,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
+# Cleanup rules added by cleanup script
+node_modules/
+dist/
+build/
+.vite/
+*.log
+.env.local

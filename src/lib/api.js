@@ -33,7 +33,7 @@ const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 export const api = axios.create({
   baseURL,
   withCredentials: true, // necesario para enviar/recibir cookies (refresh)
-  timeout: 10000, // 10 segundos de timeout
+  timeout: 30000, // 30 segundos de timeout (aumentado temporalmente para operaciones lentas)
 });
 
 // Agrega Authorization si hay token
@@ -250,8 +250,49 @@ export async function createOrUpdateProfile(profileData) {
  * @returns {Promise<object>} - Perfil del usuario
  */
 export async function getCurrentProfile() {
-  const response = await api.get("/api/v1/profiles/me");
-  return response.data;
+  // Some deployments don't expose a `/profiles/me` endpoint. Fall back to
+  // fetching profiles list and matching by user id from the JWT access token.
+  try {
+    // Try the convenient endpoint first (if available on the backend)
+    const resp = await api.get("/api/v1/profiles/me");
+    return resp.data;
+  } catch (e) {
+    // If the backend doesn't implement /profiles/me it will return 404/422.
+    // Fall back to listing profiles and matching by the subject in the JWT.
+    try {
+      const listResp = await api.get("/api/v1/profiles", { params: { page: 1, size: 100 } });
+      const profiles = listResp.data?.items || listResp.data?.data || listResp.data || [];
+      // attempt to get user id from in-memory token
+      let currentUserId = null;
+      try {
+        const decoded = jwtDecode(accessToken || "");
+        currentUserId = decoded?.sub || decoded?.user_id || null;
+      } catch {
+        currentUserId = null;
+      }
+
+      if (currentUserId) {
+        const match = profiles.find((p) => String(p.user_id) === String(currentUserId));
+        if (match) return match;
+      }
+
+      // if no match by user id, try matching by email from token
+      try {
+        const decoded = jwtDecode(accessToken || "");
+        const email = decoded?.email;
+        if (email) {
+          const matchByEmail = profiles.find((p) => String(p.email).toLowerCase() === String(email).toLowerCase());
+          if (matchByEmail) return matchByEmail;
+        }
+      } catch {}
+
+      // otherwise return null
+      return null;
+    } catch (err) {
+      // bubble up the original error if listing also failed
+      throw err;
+    }
+  }
 }
 
 /**

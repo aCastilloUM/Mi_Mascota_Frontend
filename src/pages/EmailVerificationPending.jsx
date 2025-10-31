@@ -45,8 +45,8 @@ export default function EmailVerificationPending() {
   const [countdown, setCountdown] = useState(60); // 60 segundos para reenviar
   const [canResend, setCanResend] = useState(false);
 
-  // Obtener email y token del state del registro (pasado desde Register.jsx)
-  const userEmail = location.state?.email || "tu-email@ejemplo.com";
+  // Obtener email y token del state del registro (pasado desde Register.jsx) o sessionStorage
+  const userEmail = location.state?.email || sessionStorage.getItem('mimascota:register_email') || "";
   const devToken = location.state?.token || null;
 
   // Countdown timer para reenvío

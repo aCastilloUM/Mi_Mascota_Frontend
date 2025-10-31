@@ -1,0 +1,58 @@
+.vet-card {
+  position: fixed;
+  /* slightly more left (increase right offset) and a bit narrower */
+  right: 180px;
+  margin-right: 12px;
+  top: 72px;
+  width: 320px;
+  background: #0f1720; /* dark */
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+  overflow: hidden;
+  z-index: 1200;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+.vet-card__media {
+  height: 180px;
+  background: linear-gradient(180deg,#111827,#0b1220);
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-top-left-radius:12px;border-top-right-radius:12px;
+}
+.vet-card__img-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.vet-card__img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;border-top-left-radius:12px;border-top-right-radius:12px;transition:opacity .35s ease,filter .5s ease,transform .5s ease}
+.vet-card__img.loading{opacity:0;filter:blur(20px) scale(1.02);transform:scale(1.02)}
+.vet-card__img.loaded{opacity:1;filter:blur(0);transform:none}
+.vet-card__photo-badge{position:absolute;left:10px;top:10px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(4px)}
+.vet-card__body{padding:14px}
+.vet-card__header{display:flex;align-items:flex-start;justify-content:space-between}
+.vet-card__title{font-size:18px;margin:0 0 6px 0;color:#fff;font-weight:700}
+.vet-card__close{background:transparent;border:0;color:#9ca3af;font-size:20px;line-height:1;cursor:pointer}
+.vet-card__address{color:#cbd5e1;font-size:13px;margin-bottom:8px}
+.vet-card__phone{color:#cbd5e1;font-size:13px;margin-bottom:8px}
+.vet-card__meta{display:flex;gap:10px;margin:8px 0;align-items:center}
+.vet-card__rating{display:flex;flex-direction:column;gap:6px}
+.vet-card__stars{display:flex;align-items:center;gap:6px}
+.vet-card__star--filled{color:#FFC107;font-size:16px}
+.vet-card__star--empty{color:#374151;font-size:16px}
+.vet-card__rating-number{color:#9ca3af;margin-left:6px;font-size:13px}
+.vet-card__reviews-count{color:#9ca3af;font-size:13px}
+.vet-card__reviews{max-height:120px;overflow:auto;margin-top:8px}
+.vet-card__review{padding:8px;border-top:1px solid rgba(255,255,255,0.03)}
+.vet-card__review-author{font-size:12px;font-weight:600}
+.vet-card__review-text{font-size:13px;color:#cbd5e1}
+.vet-card__no-reviews{color:#6b7280;font-size:13px;margin-top:8px}
+.vet-card__actions{display:flex;gap:8px;margin-top:12px}
+.vet-card__btn{flex:1;padding:12px 14px;border-radius:8px;background:#0b1220;color:#fff;text-decoration:none;text-align:center;border:1px solid rgba(255,255,255,0.04)}
+.vet-card__btn--primary{background:#fff;color:#0b1220;font-weight:700}
+.vet-card__btn--call{background:linear-gradient(180deg,#0b1220,#081018)}
+
+/* small responsive tweak */
+@media (max-width: 600px) {
+  .vet-card{left:12px;right:12px;top:72px;width:auto}
+}
+
+/* larger screens: nudge further left to reduce overlap with right-side UI */
+@media (min-width: 1200px) {
+  /* on large screens move a bit further left to avoid side panels and keep card narrower */
+  .vet-card { right: 240px; width: 380px; }
+}

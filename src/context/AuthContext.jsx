@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, setAccessToken, setOnTokenUpdate, isTokenExpired, register as apiRegister, login as apiLogin, loginWith2FA as apiLoginWith2FA } from "../lib/api";
+import { api, setAccessToken, setOnTokenUpdate, isTokenExpired, register as apiRegister, login as apiLogin, loginWith2FA as apiLoginWith2FA, getCurrentProfile } from "../lib/api";
 import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext(null);
@@ -22,9 +22,25 @@ export function AuthProvider({ children }) {
 
   // Mantener sincronizado api.js -> contexto
   useEffect(() => {
-    setOnTokenUpdate((t) => {
+    // when the access token changes, keep access in state and fetch full profile
+    setOnTokenUpdate(async (t) => {
       setAccess(t);
-      setUser(userFrom(t));
+      if (!t) {
+        setUser(null);
+        return;
+      }
+
+      // basic info from JWT
+      const basic = userFrom(t) || {};
+
+      try {
+        const profile = await getCurrentProfile();
+        // merge basic JWT fields with profile fields returned from API
+        setUser({ ...basic, ...profile });
+      } catch (e) {
+        // fallback to basic info if profile fetch fails
+        setUser(basic);
+      }
     });
     return () => setOnTokenUpdate(null);
   }, []);
