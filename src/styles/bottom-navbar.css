@@ -127,6 +127,8 @@ body.has-input-focus .bottom-navbar {
   background: transparent !important;
   outline: none !important;
   box-shadow: none !important;
+  /* prevent any transform movement when interacting */
+  transform: none !important;
 }
 
 /* On touch-only devices hide focus-visible ring (keyboard users still see it) */
@@ -140,9 +142,10 @@ body.has-input-focus .bottom-navbar {
 .bottom-navbar__link::before {
   content: "";
   position: absolute;
-  top: 8px; /* slightly inside the top padding */
+  /* center the circular bubble both horizontally and vertically inside the link */
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: clamp(64px, 14vw, 76px); /* uniform, slightly larger bubble */
   height: clamp(64px, 14vw, 76px);
   border-radius: 50%;
@@ -155,17 +158,30 @@ body.has-input-focus .bottom-navbar {
 .bottom-navbar__link .bottom-navbar__icon {
   position: relative;
   z-index: 1; /* put svg above the bubble */
+  /* ensure the svg/icon is centered inside the circular bubble */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0; /* avoid font/line gaps inside svg */
 }
 
 .bottom-navbar__link--active::before {
   background: rgba(15, 23, 42, 0.32);
-  transform: translateX(-50%) translateY(-2px);
+  /* keep the bubble centered — no vertical shift */
+  transform: translate(-50%, -50%);
 }
 
 .bottom-navbar__link--active {
   color: #f8fafc;
-  /* keep visual active feedback only on the circular bubble (::before) */
-  transform: translateY(-2px);
+  /* Do not move the link or bubble when active — keep visual fixed */
+  transform: none !important;
+}
+
+/* Ensure the circular bubble never shifts when the link is active/pressed/focused */
+.bottom-navbar__link:active::before,
+.bottom-navbar__link--active::before,
+.bottom-navbar__link:focus::before {
+  transform: translate(-50%, -50%) !important;
 }
 
 /* small fixed icon size removed; final responsive size defined later */
@@ -200,6 +216,6 @@ body.has-input-focus .bottom-navbar {
 .bottom-navbar__icon {
   width: clamp(30px, 6vw, 40px); /* larger icons to match bigger bubble */
   height: clamp(30px, 6vw, 40px);
-  display: block;
+  display: flex;
   margin: 0 auto; /* ensure icon centers inside the flex container */
 }

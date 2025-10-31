@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { FiCheck, FiX, FiMail } from "react-icons/fi";
 
 import { AnimatedButton } from "../components/ui/AnimatedButton";
@@ -10,10 +10,11 @@ import { useResponsiveText } from "../hooks/useResponsiveText";
 import { useResponsive } from "../hooks/useResponsive";
 import { verifyEmail } from "../lib/api";
 
+
 // Componente de animación de verificación exitosa
 const SuccessAnimation = ({ size = "80px" }) => {
   return (
-    <div 
+    <div
       className="success-animation"
       style={{
         width: size,
@@ -21,7 +22,7 @@ const SuccessAnimation = ({ size = "80px" }) => {
         position: "relative",
         display: "flex",
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
       }}
     >
       <div className="success-circle">
@@ -34,7 +35,7 @@ const SuccessAnimation = ({ size = "80px" }) => {
 // Componente de animación de error
 const ErrorAnimation = ({ size = "80px" }) => {
   return (
-    <div 
+    <div
       className="error-animation"
       style={{
         width: size,
@@ -42,7 +43,7 @@ const ErrorAnimation = ({ size = "80px" }) => {
         position: "relative",
         display: "flex",
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
       }}
     >
       <div className="error-circle">
@@ -60,7 +61,16 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState("loading"); // loading, success, error
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(3);
+  const [closedAttempted, setClosedAttempted] = useState(false);
   const [animationPhase, setAnimationPhase] = useState("enter"); // enter, verify, result
+
+  const location = useLocation();
+
+  // Try to determine the email to display: url param, navigation state or sessionStorage (from registration)
+  const emailFromQuery = searchParams.get("email");
+  const emailFromState = location?.state?.email;
+  const emailFromSession = typeof window !== "undefined" ? sessionStorage.getItem("mimascota:register_email") : null;
+  const userEmail = (emailFromQuery || emailFromState || emailFromSession || "").toLowerCase();
 
   const token = searchParams.get("token");
   const verifiedParam = searchParams.get("verified");
@@ -93,23 +103,23 @@ export default function VerifyEmail() {
       try {
         // Mostrar animación de verificación por un momento
         setAnimationPhase("verify");
-        
+
         // Esperar un poco para la animación
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
         // Llamar a la API
         await verifyEmail(token);
-        
+
         setStatus("success");
         setMessage("¡Email verificado exitosamente!");
         setAnimationPhase("result");
-        
+
       } catch (error) {
         console.error("Error al verificar email:", error);
-        
+
         setStatus("error");
         setAnimationPhase("result");
-        
+
         // Manejo específico de errores
         if (error.response?.status === 400) {
           const detail = error.response.data?.detail || "";
@@ -124,7 +134,7 @@ export default function VerifyEmail() {
           setMessage("El enlace de verificación no es válido o ya fue utilizado.");
         } else if (error.response?.status >= 500) {
           setMessage("Error del servidor. Inténtalo más tarde.");
-        } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        } else if (error.code === "NETWORK_ERROR" || !error.response) {
           setMessage("Error de conexión. Verifica tu internet.");
         } else {
           setMessage("Error inesperado al verificar el email.");
@@ -141,29 +151,66 @@ export default function VerifyEmail() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (status === "success" && countdown === 0) {
-      navigate("/login", { 
-        state: { 
-          message: "✅ Email verificado exitosamente. Ya puedes iniciar sesión." 
-        } 
-      });
+      // Notify other tabs and try to close this tab (if it was opened by script)
+      const payload = { ts: Date.now(), message: "✅ Email verificado exitosamente. Ya puedes iniciar sesión." };
+
+      // BroadcastChannel (modern browsers)
+      try {
+        const bc = new BroadcastChannel("mimascota:email_events");
+        bc.postMessage({ type: "email_verified", payload });
+        bc.close();
+      } catch (e) {
+        // ignore if not supported
+      }
+
+      // localStorage fallback (triggers storage event in other tabs)
+      try {
+        localStorage.setItem("mimascota:email_verified", JSON.stringify(payload));
+      } catch (e) {
+        /* noop */
+      }
+
+      // Try to close current window. This will only work if the tab
+      // was opened via window.open from script; otherwise browsers block it.
+      try {
+        window.close();
+      } catch (e) {
+        // ignore
+      }
+
+      // After a short delay, if the window is still open, try sensible fallbacks:
+      // 1) If there's navigation history, go back to previous page (no new page created)
+      // 2) Otherwise redirect to /login
+      setTimeout(() => {
+        setClosedAttempted(true);
+
+        // Final fallback: go to login (prefer login instead of returning to registration page)
+        try {
+          navigate("/login", {
+            state: {
+              message: payload.message,
+            },
+          });
+        } catch (e) {
+          // noop
+        }
+      }, 600);
     }
   }, [status, countdown, navigate]);
 
   const handleGoToLogin = () => {
-    navigate("/login", { 
-      state: { 
-        message: status === "success" 
-          ? "✅ Email verificado exitosamente. Ya puedes iniciar sesión." 
-          : undefined
-      } 
+    navigate("/login", {
+      state: {
+        message: status === "success" ? "✅ Email verificado exitosamente. Ya puedes iniciar sesión." : undefined,
+      },
     });
   };
 
   const handleRequestNewToken = () => {
-    navigate("/email-verification-pending", { 
-      state: { 
-        email: "tu-email@ejemplo.com" // TODO: Obtener email del contexto si es posible
-      } 
+    navigate("/email-verification-pending", {
+      state: {
+        email: userEmail || undefined,
+      },
     });
   };
 
@@ -181,9 +228,7 @@ export default function VerifyEmail() {
           </div>
 
           <h1 style={{ ...styles.title, fontSize: title }}>Verificando tu email...</h1>
-          <p style={{ ...styles.subtitle, fontSize: body }}>
-            Por favor espera mientras procesamos tu verificación.
-          </p>
+          <p style={{ ...styles.subtitle, fontSize: body }}>Por favor espera mientras procesamos tu verificación.</p>
         </div>
       );
     }
@@ -191,54 +236,59 @@ export default function VerifyEmail() {
     // Fase de resultado
     return (
       <div style={styles.content}>
-        <div style={styles.iconSection}>
-          {status === "success" ? (
-            <SuccessAnimation size="80px" />
-          ) : (
-            <ErrorAnimation size="80px" />
-          )}
-        </div>
+        <div style={styles.iconSection}>{status === "success" ? <SuccessAnimation size="80px" /> : <ErrorAnimation size="80px" />}</div>
 
-        <h1 style={{
-          ...styles.title,
-          fontSize: title,
-          color: status === "success" ? "#10B981" : "#EF4444"
-        }}>
+        <h1
+          style={{
+            ...styles.title,
+            fontSize: title,
+            color: status === "success" ? "#10B981" : "#EF4444",
+          }}
+        >
           {status === "success" ? "¡Email Verificado!" : "Error de Verificación"}
         </h1>
-        
-        <p style={{ ...styles.subtitle, fontSize: body }}>
-          {message}
-        </p>
+
+        <p style={{ ...styles.subtitle, fontSize: body }}>{message}</p>
 
         {status === "success" && (
-          <p style={{ ...styles.redirectInfo, fontSize: small }}>
-            Redirigiendo al login en {countdown} segundos...
-          </p>
+          <>
+            <p style={{ ...styles.redirectInfo, fontSize: small, fontWeight: 600 }}>Esta página se cerrará en {countdown}...</p>
+
+            {userEmail ? (
+              <p style={{ marginTop: 6, fontSize: small, color: "#475569" }}>
+                Email: <strong>{userEmail}</strong>
+              </p>
+            ) : null}
+          </>
         )}
 
         {/* Botones de acción */}
         <div style={styles.actionSection}>
           {status === "success" ? (
-            <AnimatedButton
-              onClick={handleGoToLogin}
-              style={styles.primaryBtn}
-            >
-              Ir a Iniciar Sesión
-            </AnimatedButton>
+            <>
+              {!closedAttempted ? (
+                <AnimatedButton onClick={handleGoToLogin} style={styles.primaryBtn}>
+                  Ir a Iniciar Sesión
+                </AnimatedButton>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <p style={{ margin: 0, textAlign: "center", color: "#334155" }}>
+                    Si la pestaña no se cerró automáticamente, podés volver a la otra pestaña o
+                    presionar el botón para ir al login.
+                  </p>
+                  <AnimatedButton onClick={handleGoToLogin} style={styles.primaryBtn}>
+                    Ir a Iniciar Sesión
+                  </AnimatedButton>
+                </div>
+              )}
+            </>
           ) : (
             <>
-              <AnimatedButton
-                onClick={handleRequestNewToken}
-                style={styles.primaryBtn}
-              >
+              <AnimatedButton onClick={handleRequestNewToken} style={styles.primaryBtn}>
                 Solicitar Nuevo Enlace
               </AnimatedButton>
-              
-              <button
-                onClick={handleGoToLogin}
-                style={styles.secondaryBtn}
-              >
+
+              <button onClick={handleGoToLogin} style={styles.secondaryBtn}>
                 Ir al Login
               </button>
             </>
@@ -257,18 +307,16 @@ export default function VerifyEmail() {
         </LogoWrap>
 
         {/* Card con animación de transición */}
-        <AuthCard 
+        <AuthCard
           cardType="verify-email"
           autoHeight={true}
           style={{
             opacity: animationPhase === "enter" ? 0 : 1,
             transform: animationPhase === "enter" ? "translateY(20px)" : "translateY(0)",
-            transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+            transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <AuthCardContent>
-            {renderContent()}
-          </AuthCardContent>
+          <AuthCardContent>{renderContent()}</AuthCardContent>
         </AuthCard>
       </AuthCenterWrap>
 
@@ -291,8 +339,12 @@ export default function VerifyEmail() {
         }
 
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
 
         .success-circle {
@@ -350,8 +402,12 @@ export default function VerifyEmail() {
         }
 
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(1deg); }
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(1deg);
+          }
         }
       `}</style>
     </AuthLayout>
